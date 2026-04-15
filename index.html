@@ -691,15 +691,15 @@ a { color: var(--accent); text-decoration: none; }
     <div class="main-card-body">
       <div class="narrative-box" id="narrativeBox">Carregando caso clínico...</div>
 
-      <!-- Investigation toggle (observation phase) -->
+      <!-- Investigation toggle (observation phase) — SINGLE SELECT, tracks used -->
       <div class="toggle-group" id="investigationToggle" style="display:none;">
-        <label>Tipo de investigação</label>
-        <div class="toggle-options">
-          <button class="toggle-opt" data-val="anamnese" onclick="toggleSelect(this,'investigation')">📝 Anamnese</button>
-          <button class="toggle-opt" data-val="visual" onclick="toggleSelect(this,'investigation')">👁️ Exame visual</button>
-          <button class="toggle-opt" data-val="haste" onclick="toggleSelect(this,'investigation')">🔬 Análise da haste</button>
-          <button class="toggle-opt" data-val="palpacao" onclick="toggleSelect(this,'investigation')">🤚 Palpação do couro</button>
-          <button class="toggle-opt" data-val="tração" onclick="toggleSelect(this,'investigation')">💇 Teste de tração</button>
+        <label>Escolha UMA investigação para este turno</label>
+        <div class="toggle-options" id="investigationOptions">
+          <button class="toggle-opt" data-val="anamnese" onclick="selectInvestigation(this)">📝 Anamnese</button>
+          <button class="toggle-opt" data-val="visual" onclick="selectInvestigation(this)">👁️ Exame visual</button>
+          <button class="toggle-opt" data-val="haste" onclick="selectInvestigation(this)">🔬 Análise da haste</button>
+          <button class="toggle-opt" data-val="palpacao" onclick="selectInvestigation(this)">🤚 Palpação do couro</button>
+          <button class="toggle-opt" data-val="tracao" onclick="selectInvestigation(this)">💇 Teste de tração</button>
         </div>
       </div>
 
@@ -827,6 +827,7 @@ let STATE = {
   history: [],
   narrative: '',
   consultantUsed: [],
+  usedInvestigations: [],
   gameOver: false,
   hardFail: false,
   seed: Math.floor(Math.random() * 999999)
@@ -870,24 +871,54 @@ Seed: ${STATE.seed} — use para gerar um caso ÚNICO. Varie: idade, sexo, etnia
 
 SISTEMA DE PONTUAÇÃO:
 Indicadores iniciais: Acurácia Observacional = 0, Fundamentação Biológica = 0, Conduta Profissional = 0, Segurança do Cliente = 50 (o paciente já veio buscar ajuda profissional).
-Cada turno vale até ${pts} pontos por indicador. A nota depende da qualidade:
-- Resposta excelente (detalhada, precisa, completa): ${pts} pontos
-- Resposta boa (correta mas incompleta): ${Math.round(pts * 0.6)} pontos
-- Resposta fraca (superficial, genérica, vaga): ${Math.round(pts * 0.2)} pontos
-- Resposta errada ou prejudicial: 0 pontos (e pode SUBTRAIR até -${Math.round(pts * 0.5)} de Segurança do Cliente se houver risco)
 
-REGRA DE ERRO CRÍTICO: Após cada turno (exceto o primeiro), verifique se o profissional acumulou pelo menos 50% dos pontos possíveis até aquele momento em CADA indicador ativo. Se qualquer indicador estiver abaixo de 50% do máximo acumulável, é ERRO CRÍTICO → game_over: true, hard_fail: true. Narre um desfecho negativo (ex: preceptor intervém, paciente perde confiança e vai embora).
+TODOS OS 4 INDICADORES SÃO AVALIADOS EM TODOS OS TURNOS.
+Cada turno, atribua pontos a CADA um dos 4 indicadores. Use estas faixas concretas:
 
-Para o turno atual (turno ${STATE.turn + 1}), o máximo acumulável por indicador (exceto Segurança) é: ${pts * (STATE.turn + 1)} pontos.
-Segurança do Cliente começou em 50, então o patamar é: ${50 + pts * (STATE.turn + 1)} máximo, ${Math.round((50 + pts * (STATE.turn + 1)) * 0.5)} mínimo aceitável.
+Fase de Observação — ênfase em Acurácia:
+- Acurácia Observacional: 0 a ${pts} pts (foco principal — investigou bem? priorizou o método certo?)
+- Fundamentação Biológica: 0 a ${Math.round(pts * 0.6)} pts (demonstrou saber o que procura? usou termos corretos?)
+- Conduta Profissional: 0 a ${Math.round(pts * 0.6)} pts (acolheu o paciente? comunicou? linguagem adequada?)
+- Segurança do Cliente: 0 a ${Math.round(pts * 0.4)} pts (condução segura? se fizer algo perigoso, SUBTRAIA até -${pts})
+
+Fase de Fundamentação — ênfase em Fundamentação:
+- Acurácia Observacional: 0 a ${Math.round(pts * 0.3)} pts
+- Fundamentação Biológica: 0 a ${pts} pts (foco principal — articulou achados com anatomia/ciclo?)
+- Conduta Profissional: 0 a ${Math.round(pts * 0.6)} pts (explicou de forma clara e ética?)
+- Segurança do Cliente: 0 a ${Math.round(pts * 0.5)} pts (raciocínio leva a conclusão segura?)
+
+Fase de Conduta — ênfase em Conduta e Segurança:
+- Acurácia Observacional: 0 a ${Math.round(pts * 0.2)} pts
+- Fundamentação Biológica: 0 a ${Math.round(pts * 0.3)} pts
+- Conduta Profissional: 0 a ${pts} pts (foco principal — decisão concreta, justificada, ética?)
+- Segurança do Cliente: 0 a ${pts} pts (encaminhou quando devia? evitou risco? se prejudicou, SUBTRAIA até -${pts})
+
+REGRA DE OURO: Os indicadores são ACUMULATIVOS (somam a cada turno). No JSON de resposta, informe o TOTAL acumulado até o momento, NÃO apenas os pontos do turno atual.
+Exemplo: se no turno 1 Acurácia recebeu 20, e no turno 2 recebeu mais 22, o valor no JSON do turno 2 deve ser 42.
+Se o profissional fez algo que merece SUBTRAÇÃO (como prescrever medicamento sem habilitação), subtraia do total acumulado.
+
+META: ${lvl.turns} turnos bem jogados devem levar próximo de 100 em cada indicador. Segurança começa em 50 e pode chegar perto de 100 com boas decisões.
+
+REGRA DE ERRO CRÍTICO:
+Após cada turno (a partir do turno 2), calcule a média dos 4 indicadores. Se a média geral estiver abaixo de 25% do máximo acumulável até aquele ponto, é ERRO CRÍTICO → game_over: true, hard_fail: true.
+Máximo acumulável no turno atual: Acurácia/Fundamentação/Conduta = ${pts} × turnos jogados. Segurança = 50 + ${pts} × turnos jogados.
+
+DOSAGEM DE INFORMAÇÃO — REGRA FUNDAMENTAL:
+Na Observação, o profissional escolhe UMA ÚNICA investigação por turno. Revele SOMENTE o que aquele método revelaria:
+- Anamnese → queixa, cronologia, gatilhos (estresse, doença, medicação), histórico familiar, hábitos. NÃO descreva achados visuais ou de toque.
+- Exame visual → o que se VÊ: distribuição da queda, densidade, rarefação, coloração do couro. NÃO inclua informações de anamnese.
+- Análise da haste → diâmetro, elasticidade, fragilidade, cutícula, pontos de fratura.
+- Palpação do couro → textura, temperatura, nódulos, dor, elasticidade.
+- Teste de tração → quantos fios se soltam, regiões, aspecto das raízes (telógena/anágena/distrófica).
+NUNCA misture achados de métodos diferentes. Se o profissional só fez anamnese, ele NÃO VÊ resultado de teste de tração.
+Ao final de cada turno de Observação, lance um próximo desafio que motive a escolha da próxima investigação.
 
 REGRAS ADICIONAIS:
-- NÃO há mínimo de palavras. Julgue pela QUALIDADE e PROFUNDIDADE da resposta, não pelo tamanho. Uma resposta curta mas precisa e completa pode receber nota alta. Uma resposta longa mas genérica e vaga deve receber nota baixa.
-- Resposta vaga → descreva consequências negativas NA CENA (paciente fica inseguro, informação se perde). Dê poucos pontos. O feedback explica o que faltou.
-- Decisão perigosa → penalize fortemente ou subtraia Segurança do Cliente.
-- Fase de Observação: revele informações clínicas proporcionais à qualidade da investigação solicitada. Se o profissional não perguntar algo relevante, a informação não aparece.
+- NÃO há mínimo de palavras. Julgue pela QUALIDADE e PROFUNDIDADE.
+- Resposta vaga → descreva consequências negativas NA CENA. Dê poucos pontos. O feedback explica o que faltou.
+- Decisão perigosa → penalize fortemente Segurança do Cliente.
 - Fase de Fundamentação: espere articulação entre achados e teoria. Narre a reação do preceptor.
-- Fase de Conduta: narre as consequências da decisão — o paciente reage, o preceptor avalia.
+- Fase de Conduta: narre consequências da decisão — paciente reage, preceptor avalia.
 
 FORMATO DE RESPOSTA (JSON estrito, sem markdown, sem texto fora do JSON):
 {
@@ -1100,8 +1131,13 @@ function checkSession() {
     if (saved.completedDate) return false;
     if (saved.turn > 0 && !saved.gameOver && saved.level) {
       STATE = { ...STATE, ...saved };
+      usedInvestigations = STATE.usedInvestigations || [];
       showScreen('gamescreen');
       renderGameState();
+      // Re-disable used investigation buttons
+      if (usedInvestigations.length > 0) {
+        setTimeout(() => markInvestigationUsed(), 100);
+      }
       return true;
     }
   } catch(e) {}
@@ -1130,6 +1166,8 @@ function startGame() {
   STATE.history = [];
   STATE.narrative = '';
   STATE.consultantUsed = [];
+  STATE.usedInvestigations = [];
+  usedInvestigations = [];
   STATE.gameOver = false;
   STATE.hardFail = false;
   STATE.seed = Math.floor(Math.random() * 999999);
@@ -1161,6 +1199,20 @@ function renderGameState() {
   document.getElementById('investigationToggle').style.display = STATE.phase === 0 ? 'block' : 'none';
   document.getElementById('frameworkToggle').style.display = STATE.phase === 1 ? 'block' : 'none';
 
+  // Re-apply used investigation states
+  if (STATE.phase === 0 && usedInvestigations.length > 0) {
+    document.querySelectorAll('#investigationOptions .toggle-opt').forEach(btn => {
+      const val = btn.getAttribute('data-val');
+      if (usedInvestigations.includes(val)) {
+        btn.classList.add('used');
+        btn.classList.remove('selected');
+        btn.style.opacity = '0.4';
+        btn.style.textDecoration = 'line-through';
+        btn.style.cursor = 'not-allowed';
+      }
+    });
+  }
+
   // Response label
   const labels = ['Descreva sua investigação','Articule sua fundamentação biológica','Descreva sua conduta e justificativa'];
   document.getElementById('responseLabel').textContent = labels[STATE.phase];
@@ -1189,6 +1241,18 @@ function updateSubmitState() {
 
 // ===================== TOGGLES =====================
 let selectedToggles = { investigation: [], framework: [] };
+let usedInvestigations = []; // tracks which investigations have been used in prior turns
+
+function selectInvestigation(btn) {
+  if (btn.classList.contains('used')) return; // already used in prior turn
+  const val = btn.getAttribute('data-val');
+  // Deselect all others (single-select)
+  document.querySelectorAll('#investigationOptions .toggle-opt').forEach(b => {
+    if (b !== btn) b.classList.remove('selected');
+  });
+  btn.classList.toggle('selected');
+  selectedToggles.investigation = btn.classList.contains('selected') ? [val] : [];
+}
 
 function toggleSelect(btn, group) {
   btn.classList.toggle('selected');
@@ -1201,8 +1265,27 @@ function toggleSelect(btn, group) {
 }
 
 function clearToggles() {
-  document.querySelectorAll('.toggle-opt').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.toggle-opt:not(.used)').forEach(b => b.classList.remove('selected'));
   selectedToggles = { investigation: [], framework: [] };
+}
+
+function markInvestigationUsed() {
+  if (selectedToggles.investigation.length > 0) {
+    const val = selectedToggles.investigation[0];
+    if (!usedInvestigations.includes(val)) usedInvestigations.push(val);
+    STATE.usedInvestigations = [...usedInvestigations];
+  }
+  // Disable used buttons visually
+  document.querySelectorAll('#investigationOptions .toggle-opt').forEach(btn => {
+    const val = btn.getAttribute('data-val');
+    if (usedInvestigations.includes(val)) {
+      btn.classList.add('used');
+      btn.classList.remove('selected');
+      btn.style.opacity = '0.4';
+      btn.style.textDecoration = 'line-through';
+      btn.style.cursor = 'not-allowed';
+    }
+  });
 }
 
 // ===================== API CALL =====================
@@ -1341,6 +1424,7 @@ async function submitResponse() {
     STATE.turnInPhase = nextTurnInPhase;
     applyResult(result);
     document.getElementById('responseText').value = '';
+    if (STATE.phase === 0 || nextPhase === 0) markInvestigationUsed(); // mark before clearing
     clearToggles();
     updateCharCount();
   };
@@ -1377,23 +1461,16 @@ function applyResult(result) {
     STATE.indicators.conduta = clamp(result.indicadores.conduta ?? STATE.indicators.conduta, 0, 100);
   }
 
-  // Check hard fail — 50% threshold rule
-  // After turn 1+, each indicator must be at least 50% of max possible
-  if (STATE.turn > 1) {
+  // Check hard fail — average below 25% of max possible after turn 2+
+  if (STATE.turn >= 2) {
     const pts = { junior: 25, pleno: 17, senior: 11 }[STATE.level];
-    const turnsPlayed = STATE.turn; // turns completed so far
-    const maxAcuracia = pts * turnsPlayed;
-    const maxFund = pts * turnsPlayed;
-    const maxConduta = pts * turnsPlayed;
-    const maxSeguranca = 50 + pts * turnsPlayed;
-
-    const belowThreshold =
-      STATE.indicators.acuracia < Math.round(maxAcuracia * 0.5) ||
-      STATE.indicators.fundamentacao < Math.round(maxFund * 0.5) ||
-      STATE.indicators.conduta < Math.round(maxConduta * 0.5) ||
-      STATE.indicators.seguranca < Math.round(maxSeguranca * 0.5);
-
-    if (belowThreshold) {
+    const turnsPlayed = STATE.turn;
+    const maxPerIndicator = pts * turnsPlayed;
+    const maxSeguranca = 50 + maxPerIndicator;
+    const maxTotal = maxPerIndicator * 3 + maxSeguranca; // 3 indicators + segurança
+    const currentTotal = STATE.indicators.acuracia + STATE.indicators.fundamentacao + STATE.indicators.conduta + STATE.indicators.seguranca;
+    
+    if (currentTotal < Math.round(maxTotal * 0.25)) {
       STATE.hardFail = true;
       STATE.gameOver = true;
     }
@@ -1465,9 +1542,10 @@ function resetGame() {
   STATE = {
     screen: 'tutorial1', level: null, playerName: '', turn: 0, phase: 0, turnInPhase: 0,
     indicators: { acuracia: 0, fundamentacao: 0, seguranca: 50, conduta: 0 },
-    history: [], narrative: '', consultantUsed: [], gameOver: false, hardFail: false,
+    history: [], narrative: '', consultantUsed: [], usedInvestigations: [], gameOver: false, hardFail: false,
     seed: Math.floor(Math.random() * 999999)
   };
+  usedInvestigations = [];
   showScreen('difficulty');
 }
 
