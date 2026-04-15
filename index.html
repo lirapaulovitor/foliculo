@@ -655,23 +655,23 @@ a { color: var(--accent); text-decoration: none; }
   <div class="indicators-row" id="indicatorsRow">
     <div class="indicator-card">
       <div class="ind-label">Acurácia Observacional</div>
-      <div class="ind-value" id="ind1val">65</div>
-      <div class="ind-bar"><div class="ind-fill" id="ind1bar" style="width:65%"></div></div>
+      <div class="ind-value" id="ind1val">0</div>
+      <div class="ind-bar"><div class="ind-fill" id="ind1bar" style="width:0%"></div></div>
     </div>
     <div class="indicator-card">
       <div class="ind-label">Fundamentação Biológica</div>
-      <div class="ind-value" id="ind2val">65</div>
-      <div class="ind-bar"><div class="ind-fill" id="ind2bar" style="width:65%"></div></div>
+      <div class="ind-value" id="ind2val">0</div>
+      <div class="ind-bar"><div class="ind-fill" id="ind2bar" style="width:0%"></div></div>
     </div>
     <div class="indicator-card">
       <div class="ind-label">Segurança do Cliente</div>
-      <div class="ind-value" id="ind3val">65</div>
-      <div class="ind-bar"><div class="ind-fill" id="ind3bar" style="width:65%"></div></div>
+      <div class="ind-value" id="ind3val">50</div>
+      <div class="ind-bar"><div class="ind-fill" id="ind3bar" style="width:50%"></div></div>
     </div>
     <div class="indicator-card">
       <div class="ind-label">Conduta Profissional</div>
-      <div class="ind-value" id="ind4val">65</div>
-      <div class="ind-bar"><div class="ind-fill" id="ind4bar" style="width:65%"></div></div>
+      <div class="ind-value" id="ind4val">0</div>
+      <div class="ind-bar"><div class="ind-fill" id="ind4bar" style="width:0%"></div></div>
     </div>
   </div>
 
@@ -717,7 +717,7 @@ a { color: var(--accent); text-decoration: none; }
       <!-- Response -->
       <div class="response-area">
         <label id="responseLabel">Sua análise</label>
-        <textarea class="response-textarea" id="responseText" placeholder="Descreva sua análise com pelo menos 50 palavras..." oninput="updateCharCount()"></textarea>
+        <textarea class="response-textarea" id="responseText" placeholder="Descreva sua análise de forma detalhada e precisa..." oninput="updateCharCount()"></textarea>
         <div class="char-counter" id="charCounter">0 palavras</div>
       </div>
 
@@ -823,7 +823,7 @@ let STATE = {
   turn: 0,
   phase: 0,
   turnInPhase: 0,
-  indicators: { acuracia: 65, fundamentacao: 65, seguranca: 65, conduta: 65 },
+  indicators: { acuracia: 0, fundamentacao: 0, seguranca: 50, conduta: 0 },
   history: [],
   narrative: '',
   consultantUsed: [],
@@ -835,17 +835,27 @@ let STATE = {
 // ===================== SYSTEM PROMPT =====================
 function buildSystemPrompt() {
   const lvl = LEVEL_CONFIG[STATE.level];
+  // Points per turn by level
+  const pointsPerTurn = { junior: 25, pleno: 17, senior: 11 };
+  const pts = pointsPerTurn[STATE.level];
+  const criticalThreshold = Math.round(pts * STATE.turn * 0.5); // 50% of points in play so far
+
   return `Você é o narrador imersivo do simulador "Folículo". Sua função é criar a experiência de um atendimento real em uma clínica-escola de tricologia.
 
 VOZ NARRATIVA — REGRA INVIOLÁVEL:
-Narre SEMPRE em segunda pessoa, no presente, como se o aluno estivesse vivendo a cena naquele instante. Você é a voz do ambiente clínico — descreva o que o profissional vê, ouve, sente ao toque, o que o paciente diz em discurso direto.
+Narre SEMPRE em segunda pessoa, no presente, como se o profissional estivesse vivendo a cena naquele instante. Você é a voz do ambiente clínico — descreva o que o profissional vê, ouve, sente ao toque, o que o paciente diz em discurso direto.
 - CERTO: "Você separa as mechas na região temporal e observa que o couro cabeludo está eritematoso. Marina faz uma careta: 'Dói quando você aperta aí.'"
 - CERTO: "Ao realizar o teste de tração, três fios se soltam facilmente. As raízes têm formato de clava esbranquiçada — fios telógenos."
-- CERTO: "Sua escolha de investigar a haste com dermatoscopia revela cutículas danificadas e pontos de fratura ao longo do córtex."
 - ERRADO: "O aluno escolheu fazer anamnese..." / "O estudante escreveu que..." / "A resposta do aluno demonstra..."
 - ERRADO: Qualquer menção a "aluno", "estudante", "resposta", "simulação", "turno", "indicadores" dentro da narrativa.
+Nunca quebre a imersão dentro da narrativa. A narrativa é 100% diegética — só existe o consultório, o paciente, e o que acontece ali.
 
-Nunca quebre a imersão. Nunca comente sobre a qualidade da resposta dentro da narrativa. O feedback pedagógico é dado EXCLUSIVAMENTE pelos indicadores numéricos (que o aluno vê na interface). A narrativa é 100% diegética — só existe o consultório, o paciente, e o que acontece ali.
+FEEDBACK PEDAGÓGICO:
+Ao FINAL da narrativa, SEMPRE adicione um parágrafo separado começando com "📝 Feedback:" seguido de uma avaliação direta e construtiva da conduta do profissional naquele turno. Exemplos:
+- "📝 Feedback: Você seguiu o caminho correto ao priorizar a anamnese antes do exame visual. A investigação sobre histórico hormonal e estresse recente foi pertinente e cobriu os principais gatilhos. Faltou explorar o histórico familiar de alopecia."
+- "📝 Feedback: Sua abordagem considerou diversos aspectos relevantes, mas ficaram faltando pontos críticos: você não investigou a duração da queda nem a presença de dor ou prurido, que são essenciais para o diagnóstico diferencial."
+- "📝 Feedback: Você deixou de fora os principais aspectos da investigação. Uma anamnese em tricologia precisa obrigatoriamente incluir: início e duração da queda, padrão de distribuição, histórico de estresse/doença nos últimos 3-6 meses, e uso de medicamentos."
+O feedback deve refletir DIRETAMENTE a movimentação dos indicadores. Se os indicadores subiram, o feedback é positivo. Se desceram, aponta o que faltou.
 
 CONTEÚDO DE REFERÊNCIA:
 Tema 1 — ANATOMIA FUNCIONAL DA UNIDADE PILOSSEBÁCEA: folículo como mini-órgão integrado com três segmentos (infundíbulo, istmo, segmento inferior), bulbo (matriz germinativa + papila dérmica como centro instrutivo + melanócitos), bainhas radiculares (interna: cutícula/Huxley/Henle; externa: contínua, abriga o bulge), bulge (células-tronco CK15/CK19/CD200, renovação folicular, reepitelização), glândula sebácea (holócrina, sebo), músculo eretor, vascularização da papila, inervação sensorial+autonômica, embriogênese por interações epitelial-mesenquimais. Conceitos-chave: papila dérmica como centro instrutivo (se removida→sem pelo; se transplantada→induz folículo novo), transplante capilar funciona porque carrega toda a unidade, queimadura profunda destrói bulge→alopecia cicatricial definitiva, distinção cicatricial (bulge destruído=irreversível) vs não cicatricial (bulge preservado=potencialmente reversível), fibroblastos da papila perdem propriedades indutoras em cultura 2D.
@@ -858,23 +868,30 @@ Nível: ${lvl.label} (${lvl.turns} turnos)
 Fases: Observação (${lvl.phases[0]} turnos) → Fundamentação (${lvl.phases[1]} turnos) → Conduta (${lvl.phases[2]} turnos)
 Seed: ${STATE.seed} — use para gerar um caso ÚNICO. Varie: idade, sexo, etnia, tipo de queixa, gravidade, presença/ausência de sinais de alarme, contexto hormonal/emocional/nutricional.
 
-INDICADORES (começam em 65, escala 0-100, delta máx ±15/turno):
-1. Acurácia Observacional — investiga com método? Seleciona exames relevantes?
-2. Fundamentação Biológica — ancora hipóteses na anatomia e no ciclo capilar?
-3. Segurança do Cliente — reconhece limites? Encaminha quando necessário?
-4. Conduta Profissional — comunicação clara, ética, contextualizada?
+SISTEMA DE PONTUAÇÃO:
+Indicadores iniciais: Acurácia Observacional = 0, Fundamentação Biológica = 0, Conduta Profissional = 0, Segurança do Cliente = 50 (o paciente já veio buscar ajuda profissional).
+Cada turno vale até ${pts} pontos por indicador. A nota depende da qualidade:
+- Resposta excelente (detalhada, precisa, completa): ${pts} pontos
+- Resposta boa (correta mas incompleta): ${Math.round(pts * 0.6)} pontos
+- Resposta fraca (superficial, genérica, vaga): ${Math.round(pts * 0.2)} pontos
+- Resposta errada ou prejudicial: 0 pontos (e pode SUBTRAIR até -${Math.round(pts * 0.5)} de Segurança do Cliente se houver risco)
 
-REGRAS:
-- Resposta vaga/curta do profissional → descreva consequências negativas NA CENA (ex: o paciente fica inseguro, você perde informação importante). Penalize nos indicadores. NUNCA complete pelo profissional.
-- Decisão perigosa (ex: tratar alopecia cicatricial sem encaminhar) → penalize FORTEMENTE Segurança do Cliente.
-- Indicador zerou → game_over + hard_fail. Narre o desfecho clínico negativo.
-- Fase de Observação: o profissional informa o tipo de investigação (anamnese, exame visual, análise da haste, palpação, teste de tração). Revele informações clínicas coerentes com o método escolhido. Se ele não investigar algo relevante, a informação simplesmente não aparece.
-- Fase de Fundamentação: espere articulação entre achados e teoria. Narre a reação do supervisor/preceptor da clínica-escola ao raciocínio.
-- Fase de Conduta: narre as consequências da decisão tomada — o paciente reage, o preceptor avalia.
+REGRA DE ERRO CRÍTICO: Após cada turno (exceto o primeiro), verifique se o profissional acumulou pelo menos 50% dos pontos possíveis até aquele momento em CADA indicador ativo. Se qualquer indicador estiver abaixo de 50% do máximo acumulável, é ERRO CRÍTICO → game_over: true, hard_fail: true. Narre um desfecho negativo (ex: preceptor intervém, paciente perde confiança e vai embora).
+
+Para o turno atual (turno ${STATE.turn + 1}), o máximo acumulável por indicador (exceto Segurança) é: ${pts * (STATE.turn + 1)} pontos.
+Segurança do Cliente começou em 50, então o patamar é: ${50 + pts * (STATE.turn + 1)} máximo, ${Math.round((50 + pts * (STATE.turn + 1)) * 0.5)} mínimo aceitável.
+
+REGRAS ADICIONAIS:
+- NÃO há mínimo de palavras. Julgue pela QUALIDADE e PROFUNDIDADE da resposta, não pelo tamanho. Uma resposta curta mas precisa e completa pode receber nota alta. Uma resposta longa mas genérica e vaga deve receber nota baixa.
+- Resposta vaga → descreva consequências negativas NA CENA (paciente fica inseguro, informação se perde). Dê poucos pontos. O feedback explica o que faltou.
+- Decisão perigosa → penalize fortemente ou subtraia Segurança do Cliente.
+- Fase de Observação: revele informações clínicas proporcionais à qualidade da investigação solicitada. Se o profissional não perguntar algo relevante, a informação não aparece.
+- Fase de Fundamentação: espere articulação entre achados e teoria. Narre a reação do preceptor.
+- Fase de Conduta: narre as consequências da decisão — o paciente reage, o preceptor avalia.
 
 FORMATO DE RESPOSTA (JSON estrito, sem markdown, sem texto fora do JSON):
 {
-  "narrativa": "Narração imersiva em segunda pessoa, presente. Máximo 300 palavras. Português brasileiro.",
+  "narrativa": "Narração imersiva em segunda pessoa + parágrafo final de feedback (📝 Feedback: ...). Máximo 400 palavras. Português brasileiro.",
   "indicadores": { "acuracia": N, "fundamentacao": N, "seguranca": N, "conduta": N },
   "modulos_revisar": ["conceito a revisar se aplicável"],
   "game_over": false,
@@ -883,7 +900,7 @@ FORMATO DE RESPOSTA (JSON estrito, sem markdown, sem texto fora do JSON):
 }
 
 Último turno → game_over: true + diagnostico_final preenchido.
-Primeiro turno → apresente o paciente entrando na sala. Aparência, queixa em discurso direto, primeiras observações visuais. NÃO revele diagnóstico.`;
+Primeiro turno → apresente o paciente entrando na sala. Aparência, queixa em discurso direto, primeiras observações visuais. NÃO revele diagnóstico. NÃO inclua feedback no primeiro turno (é só apresentação do caso).`;
 }
 
 // ===================== PERSISTENT STORAGE (IndexedDB) =====================
@@ -1109,7 +1126,7 @@ function startGame() {
   STATE.turn = 0;
   STATE.phase = 0;
   STATE.turnInPhase = 0;
-  STATE.indicators = { acuracia: 65, fundamentacao: 65, seguranca: 65, conduta: 65 };
+  STATE.indicators = { acuracia: 0, fundamentacao: 0, seguranca: 50, conduta: 0 };
   STATE.history = [];
   STATE.narrative = '';
   STATE.consultantUsed = [];
@@ -1161,14 +1178,13 @@ function updateCharCount() {
   const words = text ? text.split(/\s+/).length : 0;
   const counter = document.getElementById('charCounter');
   counter.textContent = `${words} palavra${words !== 1 ? 's' : ''}`;
-  counter.classList.toggle('warning', words < 50 && words > 0);
+  counter.classList.remove('warning');
   updateSubmitState();
 }
 
 function updateSubmitState() {
   const text = document.getElementById('responseText').value.trim();
-  const words = text ? text.split(/\s+/).length : 0;
-  document.getElementById('submitBtn').disabled = words < 50;
+  document.getElementById('submitBtn').disabled = text.length < 1;
 }
 
 // ===================== TOGGLES =====================
@@ -1282,8 +1298,7 @@ async function requestFirstTurn() {
 
 async function submitResponse() {
   const text = document.getElementById('responseText').value.trim();
-  const words = text.split(/\s+/).length;
-  if (words < 50) return;
+  if (!text) return;
 
   hideError();
   const cfg = LEVEL_CONFIG[STATE.level];
@@ -1362,11 +1377,26 @@ function applyResult(result) {
     STATE.indicators.conduta = clamp(result.indicadores.conduta ?? STATE.indicators.conduta, 0, 100);
   }
 
-  // Check hard fail
-  const anyZero = Object.values(STATE.indicators).some(v => v <= 0);
-  if (anyZero) {
-    STATE.hardFail = true;
-    STATE.gameOver = true;
+  // Check hard fail — 50% threshold rule
+  // After turn 1+, each indicator must be at least 50% of max possible
+  if (STATE.turn > 1) {
+    const pts = { junior: 25, pleno: 17, senior: 11 }[STATE.level];
+    const turnsPlayed = STATE.turn; // turns completed so far
+    const maxAcuracia = pts * turnsPlayed;
+    const maxFund = pts * turnsPlayed;
+    const maxConduta = pts * turnsPlayed;
+    const maxSeguranca = 50 + pts * turnsPlayed;
+
+    const belowThreshold =
+      STATE.indicators.acuracia < Math.round(maxAcuracia * 0.5) ||
+      STATE.indicators.fundamentacao < Math.round(maxFund * 0.5) ||
+      STATE.indicators.conduta < Math.round(maxConduta * 0.5) ||
+      STATE.indicators.seguranca < Math.round(maxSeguranca * 0.5);
+
+    if (belowThreshold) {
+      STATE.hardFail = true;
+      STATE.gameOver = true;
+    }
   }
   if (result.game_over) STATE.gameOver = true;
   if (result.hard_fail) STATE.hardFail = true;
@@ -1390,7 +1420,7 @@ function endGame(result) {
 
   let icon = '📊', verdict = '';
   if (STATE.hardFail) {
-    icon = '⚠️'; verdict = 'Falha crítica — indicador zerou.';
+    icon = '⚠️'; verdict = 'Erro crítico — desempenho abaixo do patamar mínimo aceitável.';
   } else if (avg >= 80) {
     icon = '🏆'; verdict = 'Desempenho excelente — fundamentação sólida e conduta segura.';
   } else if (avg >= 60) {
@@ -1423,10 +1453,18 @@ function endGame(result) {
 }
 
 function resetGame() {
+  // Check if daily block applies — if so, show block screen instead of restarting
+  const today = new Date().toISOString().split('T')[0];
+  const dailyVal = storageGet(DAILY_KEY);
+  if (dailyVal === today) {
+    showScreen('dailyblock');
+    updateBlockTimer();
+    return;
+  }
   storageRemove(STORAGE_KEY);
   STATE = {
     screen: 'tutorial1', level: null, playerName: '', turn: 0, phase: 0, turnInPhase: 0,
-    indicators: { acuracia: 65, fundamentacao: 65, seguranca: 65, conduta: 65 },
+    indicators: { acuracia: 0, fundamentacao: 0, seguranca: 50, conduta: 0 },
     history: [], narrative: '', consultantUsed: [], gameOver: false, hardFail: false,
     seed: Math.floor(Math.random() * 999999)
   };
