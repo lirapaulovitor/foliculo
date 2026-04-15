@@ -377,8 +377,11 @@ a { color: var(--accent); text-decoration: none; }
 
 /* Submit Row */
 .submit-row {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-top: 20px; gap: 12px; flex-wrap: wrap;
+  display: flex; flex-direction: column; align-items: stretch;
+  margin-top: 20px; gap: 10px;
+}
+.consultants-row {
+  display: flex; gap: 10px; flex-wrap: wrap;
 }
 .submit-btn {
   padding: 14px 32px; border-radius: var(--radius-full);
@@ -386,6 +389,7 @@ a { color: var(--accent); text-decoration: none; }
   font-weight: 600; font-size: 0.95rem;
   transition: all 0.3s var(--ease-out);
   box-shadow: 0 4px 12px rgba(107,66,38,0.2);
+  text-align: center; width: 100%;
 }
 .submit-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
 .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -512,8 +516,8 @@ a { color: var(--accent); text-decoration: none; }
   .tutorial-card, .difficulty-card, .name-card, .gameover-card { padding: 32px 24px; }
   .tutorial-card h1 { font-size: 1.6rem; }
   .main-card-body { padding: 16px; }
-  .submit-row { flex-direction: column; }
-  .submit-btn, .consultant-btn { width: 100%; justify-content: center; }
+  .consultants-row { flex-direction: column; }
+  .consultant-btn { width: 100%; justify-content: center; }
   .game-header { flex-direction: column; gap: 8px; align-items: flex-start; }
 }
 </style>
@@ -719,12 +723,14 @@ a { color: var(--accent); text-decoration: none; }
 
       <!-- Submit -->
       <div class="submit-row">
-        <button class="consultant-btn" onclick="openConsultant('renata')">
-          🩺 Dra. Renata <span style="color:var(--text-muted);font-size:0.75rem;">(Dermatologista)</span>
-        </button>
-        <button class="consultant-btn" onclick="openConsultant('marcos')">
-          🔬 Prof. Marcos <span style="color:var(--text-muted);font-size:0.75rem;">(Biólogo)</span>
-        </button>
+        <div class="consultants-row">
+          <button class="consultant-btn" onclick="openConsultant('renata')">
+            🩺 Dra. Renata <span style="color:var(--text-muted);font-size:0.75rem;">(Dermatologista)</span>
+          </button>
+          <button class="consultant-btn" onclick="openConsultant('marcos')">
+            🔬 Prof. Marcos <span style="color:var(--text-muted);font-size:0.75rem;">(Biólogo)</span>
+          </button>
+        </div>
         <button class="submit-btn" id="submitBtn" onclick="submitResponse()" disabled>Enviar resposta →</button>
       </div>
     </div>
@@ -912,15 +918,13 @@ function toggleTheme() {
 // ===================== NAVIGATION =====================
 function showScreen(id) {
   try {
-    _dbg('showScreen: ' + id);
-    const screens = document.querySelectorAll('.screen');
-    screens.forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(id);
-    if (!target) { _dbg('showScreen: element #' + id + ' NOT FOUND'); return; }
+    if (!target) return;
     target.classList.add('active');
     STATE.screen = id;
   } catch(e) {
-    _dbg('showScreen ERROR: ' + e.message);
+    console.error('showScreen error:', e);
   }
 }
 
@@ -1405,42 +1409,13 @@ h1{font-family:'Playfair Display',Georgia,serif;color:#6B4226}h2{color:#5C5347;b
   a.click(); URL.revokeObjectURL(url);
 }
 
-// ===================== DEBUG (remove after testing) =====================
-// Shows JS errors on screen — useful when embedded in iframe where devtools are hard to access
-const _debugEl = document.createElement('div');
-_debugEl.id = 'debugLog';
-_debugEl.style.cssText = 'display:none;position:fixed;bottom:0;left:0;right:0;max-height:30vh;overflow:auto;background:#1a0000;color:#ff6b6b;font:12px/1.4 monospace;padding:8px 12px;z-index:9999;border-top:2px solid #ff0000;';
-document.body.appendChild(_debugEl);
-
-function _dbg(msg) {
-  _debugEl.style.display = 'block';
-  _debugEl.innerHTML += '<div>' + new Date().toLocaleTimeString() + ' — ' + msg + '</div>';
-  _debugEl.scrollTop = _debugEl.scrollHeight;
-  console.error('[Folículo Debug]', msg);
-}
-
-window.onerror = function(msg, src, line, col, err) {
-  _dbg('ERROR: ' + msg + ' (line ' + line + ')');
-};
-window.onunhandledrejection = function(e) {
-  _dbg('PROMISE: ' + (e.reason?.message || e.reason || 'unknown'));
-};
-
 // ===================== INIT =====================
 (function init() {
   try {
     if (checkDailyBlock()) return;
     if (checkSession()) return;
-    // Ensure tutorial1 is visible
-    const t1 = document.getElementById('tutorial1');
-    if (t1 && !t1.classList.contains('active')) {
-      t1.classList.add('active');
-      _dbg('INIT: forced tutorial1 active');
-    }
-    _dbg('INIT: ok, screen=' + STATE.screen);
   } catch(e) {
-    _dbg('INIT ERROR: ' + e.message);
-    // Fallback: force tutorial1 visible
+    console.error('Init error:', e);
     document.getElementById('tutorial1').classList.add('active');
   }
 })();
