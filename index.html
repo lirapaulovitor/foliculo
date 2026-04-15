@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Folículo — Simulador de Raciocínio Tricológico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===================== DESIGN TOKENS ===================== */
+:root {
+  --bg-base: #F5F0EA;
+  --bg-surface: #FFFFFF;
+  --bg-surface-alt: #EDE8E0;
+  --bg-elevated: #FDFBF8;
+  --text-primary: #1E1A14;
+  --text-secondary: #5C5347;
+  --text-muted: #8F8478;
+  --text-inverse: #FDFBF8;
+  --border: #D9D0C4;
+  --border-subtle: #E8E1D6;
+  --accent: #6B4226;
+  --accent-light: #F3ECE4;
+  --accent-hover: #8A5A3A;
+  --accent-text: #FFFFFF;
+  --success: #2D7A4F;
+  --success-light: #E6F4EC;
+  --warning: #B8860B;
+  --warning-light: #FDF5E0;
+  --danger: #A93226;
+  --danger-light: #FDECEA;
+  --info: #2E6B8A;
+  --info-light: #E8F1F5;
+  --indicator-1: #2E6B8A;
+  --indicator-2: #6B4226;
+  --indicator-3: #2D7A4F;
+  --indicator-4: #8B5E3C;
+  --phase-color: var(--accent);
+  --shadow-xs: 0 1px 2px rgba(30,26,20,0.04);
+  --shadow-sm: 0 2px 6px rgba(30,26,20,0.06);
+  --shadow-md: 0 4px 16px rgba(30,26,20,0.08);
+  --shadow-lg: 0 8px 32px rgba(30,26,20,0.1);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Source Sans 3', -apple-system, sans-serif;
+  --font-mono: 'Fira Code', monospace;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme="dark"] {
+  --bg-base: #141210;
+  --bg-surface: #1E1B18;
+  --bg-surface-alt: #282420;
+  --bg-elevated: #322D28;
+  --text-primary: #EDE8E0;
+  --text-secondary: #A89D90;
+  --text-muted: #736860;
+  --text-inverse: #1E1A14;
+  --border: #3A3530;
+  --border-subtle: #2E2A26;
+  --accent: #C4956A;
+  --accent-light: #2A2218;
+  --accent-hover: #D4A87A;
+  --accent-text: #1E1A14;
+  --success: #5AAF82;
+  --success-light: #1A2E22;
+  --warning: #D4A030;
+  --warning-light: #2A2418;
+  --danger: #E05A4E;
+  --danger-light: #2E1C1A;
+  --info: #5A9BBF;
+  --info-light: #1A2830;
+  --indicator-1: #5A9BBF;
+  --indicator-2: #C4956A;
+  --indicator-3: #5AAF82;
+  --indicator-4: #D4A87A;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-sm: 0 2px 6px rgba(0,0,0,0.25);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.35);
+}
+
+/* ===================== RESET & BASE ===================== */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; }
+a { color: var(--accent); text-decoration: none; }
+
+/* ===================== UTILITY ===================== */
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+/* ===================== THEME TOGGLE ===================== */
+.theme-toggle {
+  position: fixed; top: 16px; right: 16px; z-index: 1000;
+  width: 40px; height: 40px; border-radius: var(--radius-full);
+  background: var(--bg-surface); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-sm); transition: all 0.3s var(--ease-out);
+  font-size: 18px;
+}
+.theme-toggle:hover { transform: scale(1.1); box-shadow: var(--shadow-md); }
+
+/* ===================== SCREENS ===================== */
+.screen { display: none; animation: fadeIn 0.5s var(--ease-out); }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===================== TUTORIAL ===================== */
+.tutorial-wrap {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, var(--bg-base) 0%, var(--bg-surface-alt) 100%);
+}
+.tutorial-card {
+  max-width: 560px; width: 100%;
+  background: var(--bg-surface); border-radius: var(--radius-lg);
+  padding: 48px 40px; box-shadow: var(--shadow-lg);
+  text-align: center; position: relative; overflow: hidden;
+}
+.tutorial-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--success), var(--info));
+}
+.tutorial-icon { font-size: 56px; margin-bottom: 20px; display: block; }
+.tutorial-card h1 {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+  color: var(--text-primary); margin-bottom: 8px; line-height: 1.2;
+}
+.tutorial-card .subtitle {
+  font-size: 1rem; color: var(--text-muted); margin-bottom: 24px;
+  font-style: italic; font-family: var(--font-display);
+}
+.tutorial-card p {
+  font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 16px;
+  line-height: 1.7; text-align: left;
+}
+.tutorial-card strong { color: var(--text-primary); font-weight: 600; }
+.tutorial-steps {
+  display: flex; justify-content: center; gap: 8px; margin: 24px 0 32px;
+}
+.tutorial-step {
+  width: 10px; height: 10px; border-radius: var(--radius-full);
+  background: var(--border); transition: all 0.3s var(--ease-out);
+}
+.tutorial-step.active { background: var(--accent); width: 28px; }
+.tutorial-step.done { background: var(--success); }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 32px; border-radius: var(--radius-full);
+  background: var(--accent); color: var(--accent-text);
+  font-weight: 600; font-size: 1rem;
+  transition: all 0.3s var(--ease-out);
+  box-shadow: 0 4px 12px rgba(107,66,38,0.25);
+}
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(107,66,38,0.3); }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 28px; border-radius: var(--radius-full);
+  background: transparent; color: var(--text-secondary);
+  font-weight: 500; font-size: 0.9rem;
+  border: 1px solid var(--border); transition: all 0.3s var(--ease-out);
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ===================== DIFFICULTY SELECT ===================== */
+.difficulty-wrap {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, var(--bg-base) 0%, var(--bg-surface-alt) 100%);
+}
+.difficulty-card {
+  max-width: 640px; width: 100%;
+  background: var(--bg-surface); border-radius: var(--radius-lg);
+  padding: 48px 40px; box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+.difficulty-card h2 {
+  font-family: var(--font-display); font-size: 1.6rem; margin-bottom: 8px;
+}
+.difficulty-card .desc { color: var(--text-muted); margin-bottom: 32px; }
+.difficulty-options { display: flex; flex-direction: column; gap: 16px; }
+.diff-btn {
+  display: flex; align-items: center; gap: 16px;
+  padding: 20px 24px; border-radius: var(--radius-md);
+  background: var(--bg-elevated); border: 2px solid var(--border-subtle);
+  text-align: left; transition: all 0.3s var(--ease-out);
+  width: 100%;
+}
+.diff-btn:hover { border-color: var(--accent); transform: translateX(4px); }
+.diff-btn .diff-icon {
+  width: 48px; height: 48px; border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.diff-btn .diff-label { font-weight: 700; font-size: 1.05rem; margin-bottom: 2px; }
+.diff-btn .diff-desc { font-size: 0.85rem; color: var(--text-muted); }
+.diff-btn[data-level="junior"] .diff-icon { background: var(--info-light); }
+.diff-btn[data-level="pleno"] .diff-icon { background: var(--warning-light); }
+.diff-btn[data-level="senior"] .diff-icon { background: var(--danger-light); }
+
+/* ===================== NAME INPUT ===================== */
+.name-wrap {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, var(--bg-base) 0%, var(--bg-surface-alt) 100%);
+}
+.name-card {
+  max-width: 480px; width: 100%;
+  background: var(--bg-surface); border-radius: var(--radius-lg);
+  padding: 48px 40px; box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+.name-card h2 { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 8px; }
+.name-card .desc { color: var(--text-muted); margin-bottom: 24px; }
+.name-input {
+  width: 100%; padding: 14px 18px; border-radius: var(--radius-md);
+  border: 2px solid var(--border); background: var(--bg-elevated);
+  font-size: 1rem; color: var(--text-primary);
+  transition: border-color 0.3s; margin-bottom: 20px;
+}
+.name-input:focus { outline: none; border-color: var(--accent); }
+
+/* ===================== GAME LAYOUT ===================== */
+.game-wrap {
+  min-height: 100vh; padding: 16px;
+  background: var(--bg-base);
+}
+.game-container {
+  max-width: 900px; margin: 0 auto;
+}
+
+/* Header */
+.game-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.game-title {
+  font-family: var(--font-display); font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+.game-meta {
+  display: flex; align-items: center; gap: 16px;
+  font-size: 0.82rem; color: var(--text-muted);
+}
+.turn-badge {
+  padding: 4px 12px; border-radius: var(--radius-full);
+  background: var(--accent-light); color: var(--accent);
+  font-weight: 600; font-size: 0.8rem;
+}
+.phase-badge {
+  padding: 4px 12px; border-radius: var(--radius-full);
+  background: var(--info-light); color: var(--info);
+  font-weight: 600; font-size: 0.8rem;
+}
+
+/* Indicators Row */
+.indicators-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  margin-bottom: 16px;
+}
+.indicator-card {
+  background: var(--bg-surface); border-radius: var(--radius-md);
+  padding: 14px 12px; text-align: center;
+  border: 1px solid var(--border-subtle); box-shadow: var(--shadow-xs);
+  position: relative; overflow: hidden;
+}
+.indicator-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px; background: var(--ind-color, var(--accent));
+  transform-origin: left; transition: transform 0.6s var(--ease-out);
+}
+.indicator-card .ind-label {
+  font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px;
+}
+.indicator-card .ind-value {
+  font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700;
+  color: var(--text-primary);
+}
+.indicator-card .ind-bar {
+  margin-top: 8px; height: 4px; border-radius: 2px;
+  background: var(--border-subtle); overflow: hidden;
+}
+.indicator-card .ind-fill {
+  height: 100%; border-radius: 2px; transition: width 0.8s var(--ease-out);
+}
+.indicator-card:nth-child(1) { --ind-color: var(--indicator-1); }
+.indicator-card:nth-child(2) { --ind-color: var(--indicator-2); }
+.indicator-card:nth-child(3) { --ind-color: var(--indicator-3); }
+.indicator-card:nth-child(4) { --ind-color: var(--indicator-4); }
+.indicator-card:nth-child(1) .ind-fill { background: var(--indicator-1); }
+.indicator-card:nth-child(2) .ind-fill { background: var(--indicator-2); }
+.indicator-card:nth-child(3) .ind-fill { background: var(--indicator-3); }
+.indicator-card:nth-child(4) .ind-fill { background: var(--indicator-4); }
+
+/* Main Card */
+.main-card {
+  background: var(--bg-surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md); border: 1px solid var(--border-subtle);
+  overflow: hidden; margin-bottom: 16px;
+}
+.main-card-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+.main-card-header h3 {
+  font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 2px;
+}
+.main-card-header .phase-desc { font-size: 0.85rem; color: var(--text-muted); }
+.main-card-body { padding: 24px; }
+
+/* Narrative Box */
+.narrative-box {
+  background: var(--bg-elevated); border-radius: var(--radius-md);
+  padding: 20px; margin-bottom: 20px;
+  border-left: 3px solid var(--accent);
+  font-size: 0.92rem; line-height: 1.75; color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+.narrative-box strong { color: var(--text-primary); }
+
+/* Response Area */
+.response-area { margin-top: 16px; }
+.response-area label {
+  display: block; font-weight: 600; font-size: 0.85rem;
+  color: var(--text-secondary); margin-bottom: 8px;
+}
+.response-textarea {
+  width: 100%; min-height: 120px; padding: 16px;
+  border-radius: var(--radius-md); border: 2px solid var(--border);
+  background: var(--bg-elevated); color: var(--text-primary);
+  font-size: 0.92rem; line-height: 1.6; resize: vertical;
+  transition: border-color 0.3s;
+}
+.response-textarea:focus { outline: none; border-color: var(--accent); }
+.response-textarea::placeholder { color: var(--text-muted); }
+.char-counter {
+  text-align: right; font-size: 0.75rem; color: var(--text-muted);
+  margin-top: 6px;
+}
+.char-counter.warning { color: var(--danger); }
+
+/* Toggle Group (investigation type / framework) */
+.toggle-group { margin-bottom: 16px; }
+.toggle-group label {
+  display: block; font-weight: 600; font-size: 0.85rem;
+  color: var(--text-secondary); margin-bottom: 8px;
+}
+.toggle-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.toggle-opt {
+  padding: 8px 16px; border-radius: var(--radius-full);
+  border: 1px solid var(--border); background: var(--bg-elevated);
+  font-size: 0.82rem; font-weight: 500; color: var(--text-secondary);
+  transition: all 0.25s var(--ease-out); user-select: none;
+}
+.toggle-opt:hover { border-color: var(--accent); color: var(--accent); }
+.toggle-opt.selected {
+  background: var(--accent); color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+/* Submit Row */
+.submit-row {
+  display: flex; flex-direction: column; align-items: stretch;
+  margin-top: 20px; gap: 10px;
+}
+.consultants-row {
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.submit-btn {
+  padding: 14px 32px; border-radius: var(--radius-full);
+  background: var(--accent); color: var(--accent-text);
+  font-weight: 600; font-size: 0.95rem;
+  transition: all 0.3s var(--ease-out);
+  box-shadow: 0 4px 12px rgba(107,66,38,0.2);
+  text-align: center; width: 100%;
+}
+.submit-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.consultant-btn {
+  padding: 10px 20px; border-radius: var(--radius-full);
+  border: 1px solid var(--border); background: var(--bg-elevated);
+  font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.25s var(--ease-out);
+}
+.consultant-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Loading */
+.loading-overlay {
+  display: none; position: fixed; inset: 0; z-index: 900;
+  background: rgba(30,26,20,0.3); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+}
+.loading-overlay.active { display: flex; }
+.loading-box {
+  background: var(--bg-surface); border-radius: var(--radius-lg);
+  padding: 40px 48px; text-align: center; box-shadow: var(--shadow-lg);
+}
+.loading-spinner {
+  width: 40px; height: 40px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: var(--text-secondary); font-size: 0.9rem; }
+
+/* Consultant Panel */
+.consultant-overlay {
+  display: none; position: fixed; inset: 0; z-index: 800;
+  background: rgba(30,26,20,0.4); backdrop-filter: blur(4px);
+}
+.consultant-overlay.active { display: flex; align-items: center; justify-content: center; }
+.consultant-panel {
+  max-width: 520px; width: 90%;
+  background: var(--bg-surface); border-radius: var(--radius-lg);
+  padding: 32px; box-shadow: var(--shadow-lg);
+  max-height: 80vh; overflow-y: auto;
+  animation: slideUp 0.4s var(--ease-spring);
+}
+@keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+.consultant-panel h3 {
+  font-family: var(--font-display); font-size: 1.2rem; margin-bottom: 4px;
+}
+.consultant-panel .role { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; }
+.consultant-panel .opinion {
+  font-size: 0.9rem; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap;
+}
+.consultant-panel .close-panel {
+  margin-top: 20px; padding: 10px 24px; border-radius: var(--radius-full);
+  background: var(--accent); color: var(--accent-text); font-weight: 600;
+  transition: all 0.25s;
+}
+.consultant-panel .close-panel:hover { background: var(--accent-hover); }
+
+/* Error */
+.error-box {
+  display: none; background: var(--danger-light); border: 1px solid var(--danger);
+  border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px;
+  color: var(--danger); font-size: 0.88rem;
+}
+.error-box.active { display: block; }
+.error-box button {
+  margin-top: 8px; padding: 6px 16px; border-radius: var(--radius-full);
+  background: var(--danger); color: white; font-size: 0.8rem; font-weight: 600;
+}
+
+/* Game Over */
+.gameover-wrap {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: linear-gradient(160deg, var(--bg-base) 0%, var(--bg-surface-alt) 100%);
+}
+.gameover-card {
+  max-width: 680px; width: 100%;
+  background: var(--bg-surface); border-radius: var(--radius-lg);
+  padding: 48px 40px; box-shadow: var(--shadow-lg); text-align: center;
+}
+.gameover-card h2 {
+  font-family: var(--font-display); font-size: 2rem; margin-bottom: 8px;
+}
+.gameover-card .verdict {
+  font-size: 1.1rem; color: var(--text-muted); font-style: italic;
+  font-family: var(--font-display); margin-bottom: 24px;
+}
+.final-indicators {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+  margin-bottom: 24px;
+}
+.final-ind {
+  padding: 16px; border-radius: var(--radius-md);
+  background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+}
+.final-ind .fi-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
+.final-ind .fi-value { font-family: var(--font-mono); font-size: 1.8rem; font-weight: 700; }
+.final-narrative {
+  text-align: left; background: var(--bg-elevated); border-radius: var(--radius-md);
+  padding: 20px; margin-bottom: 24px; font-size: 0.9rem; line-height: 1.7;
+  color: var(--text-secondary); white-space: pre-wrap;
+  border-left: 3px solid var(--accent);
+}
+.gameover-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* Daily Block */
+.daily-block-wrap {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: linear-gradient(160deg, var(--bg-base) 0%, var(--bg-surface-alt) 100%);
+}
+.daily-block-card {
+  max-width: 480px; width: 100%; background: var(--bg-surface);
+  border-radius: var(--radius-lg); padding: 48px 40px;
+  box-shadow: var(--shadow-lg); text-align: center;
+}
+.daily-block-card h2 { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 12px; }
+.daily-block-card p { color: var(--text-secondary); margin-bottom: 24px; }
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 640px) {
+  .indicators-row { grid-template-columns: repeat(2, 1fr); }
+  .final-indicators { grid-template-columns: 1fr; }
+  .tutorial-card, .difficulty-card, .name-card, .gameover-card { padding: 32px 24px; }
+  .tutorial-card h1 { font-size: 1.6rem; }
+  .main-card-body { padding: 16px; }
+  .consultants-row { flex-direction: column; }
+  .consultant-btn { width: 100%; justify-content: center; }
+  .game-header { flex-direction: column; gap: 8px; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- THEME TOGGLE -->
+<button class="theme-toggle" onclick="toggleTheme()" title="Alternar tema">🌙</button>
+
+<!-- ============ SCREEN: TUTORIAL 1 ============ -->
+<div id="tutorial1" class="screen active">
+<div class="tutorial-wrap">
+<div class="tutorial-card">
+  <span class="tutorial-icon">🔬</span>
+  <h1>Folículo</h1>
+  <p class="subtitle">Simulador de Raciocínio Tricológico</p>
+  <p>Você é um <strong>profissional de tricologia em formação</strong>, realizando atendimentos clínicos em uma clínica-escola de estética capilar avançada.</p>
+  <p>Clientes reais chegam com queixas capilares variadas. Seu papel é <strong>investigar a queixa, fundamentar biologicamente suas hipóteses</strong> e <strong>decidir a melhor conduta</strong> — incluindo quando encaminhar ao dermatologista.</p>
+  <div class="tutorial-steps">
+    <div class="tutorial-step active"></div>
+    <div class="tutorial-step"></div>
+    <div class="tutorial-step"></div>
+  </div>
+  <button class="btn-primary" onclick="showScreen('tutorial2')">Continuar →</button>
+</div>
+</div>
+</div>
+
+<!-- ============ SCREEN: TUTORIAL 2 ============ -->
+<div id="tutorial2" class="screen">
+<div class="tutorial-wrap">
+<div class="tutorial-card">
+  <span class="tutorial-icon">📋</span>
+  <h1>Como funciona</h1>
+  <p class="subtitle">Três fases por caso clínico</p>
+  <p><strong>🔍 Observação</strong> — Investigue: escolha que tipo de exame ou investigação realizar (anamnese, avaliação visual, análise da haste, palpação do couro cabeludo) e descreva o que procura e por quê.</p>
+  <p><strong>🧬 Fundamentação</strong> — Articule a biologia: relacione os achados com a anatomia do folículo, o ciclo capilar e a fisiologia estudada. Formule hipóteses.</p>
+  <p><strong>⚕️ Conduta</strong> — Decida: proponha um plano (cuidado estético, encaminhamento ao dermatologista, ou ambos) e justifique.</p>
+  <div class="tutorial-steps">
+    <div class="tutorial-step done"></div>
+    <div class="tutorial-step active"></div>
+    <div class="tutorial-step"></div>
+  </div>
+  <button class="btn-primary" onclick="showScreen('tutorial3')">Continuar →</button>
+  <br><br>
+  <button class="btn-secondary" onclick="showScreen('tutorial1')">← Voltar</button>
+</div>
+</div>
+</div>
+
+<!-- ============ SCREEN: TUTORIAL 3 ============ -->
+<div id="tutorial3" class="screen">
+<div class="tutorial-wrap">
+<div class="tutorial-card">
+  <span class="tutorial-icon">📊</span>
+  <h1>Avaliação</h1>
+  <p class="subtitle">Quatro indicadores guiam seu desempenho</p>
+  <p><strong>🔵 Acurácia Observacional</strong> — Você investiga com método? Seleciona os exames certos? Observa detalhes relevantes?</p>
+  <p><strong>🟤 Fundamentação Biológica</strong> — Suas hipóteses se ancoram na anatomia do folículo, no ciclo capilar e na fisiologia estudada?</p>
+  <p><strong>🟢 Segurança do Cliente</strong> — Você reconhece quando encaminhar? Evita condutas que excedam seu escopo profissional?</p>
+  <p><strong>🟠 Conduta Profissional</strong> — Sua comunicação é clara, ética e adequada ao contexto clínico?</p>
+  <p style="margin-top:12px;">Se qualquer indicador chegar a <strong>zero</strong>, a simulação encerra automaticamente.</p>
+  <div class="tutorial-steps">
+    <div class="tutorial-step done"></div>
+    <div class="tutorial-step done"></div>
+    <div class="tutorial-step active"></div>
+  </div>
+  <button class="btn-primary" onclick="showScreen('difficulty')">Iniciar simulação →</button>
+  <br><br>
+  <button class="btn-secondary" onclick="showScreen('tutorial2')">← Voltar</button>
+</div>
+</div>
+</div>
+
+<!-- ============ SCREEN: DIFFICULTY ============ -->
+<div id="difficulty" class="screen">
+<div class="difficulty-wrap">
+<div class="difficulty-card">
+  <h2>Escolha seu nível</h2>
+  <p class="desc">Cada nível aumenta a complexidade dos casos e o número de turnos.</p>
+  <div class="difficulty-options">
+    <button class="diff-btn" data-level="junior" onclick="selectDifficulty('junior')">
+      <div class="diff-icon">🌱</div>
+      <div>
+        <div class="diff-label">Júnior — 4 turnos</div>
+        <div class="diff-desc">Casos mais diretos. Queixas isoladas, sinais claros. Ideal para consolidar fundamentos.</div>
+      </div>
+    </button>
+    <button class="diff-btn" data-level="pleno" onclick="selectDifficulty('pleno')">
+      <div class="diff-icon">🌿</div>
+      <div>
+        <div class="diff-label">Pleno — 6 turnos</div>
+        <div class="diff-desc">Casos com nuances. Sobreposição de sintomas, necessidade de investigação mais detalhada.</div>
+      </div>
+    </button>
+    <button class="diff-btn" data-level="senior" onclick="selectDifficulty('senior')">
+      <div class="diff-icon">🌳</div>
+      <div>
+        <div class="diff-label">Sênior — 9 turnos</div>
+        <div class="diff-desc">Casos complexos. Múltiplas variáveis, decisões éticas delicadas, exigência de fundamentação profunda.</div>
+      </div>
+    </button>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ============ SCREEN: NAME ============ -->
+<div id="namescreen" class="screen">
+<div class="name-wrap">
+<div class="name-card">
+  <h2>Identifique-se</h2>
+  <p class="desc">Seu nome aparecerá no relatório final.</p>
+  <input type="text" id="playerName" class="name-input" placeholder="Seu nome completo" maxlength="80" autocomplete="name">
+  <button class="btn-primary" onclick="startGame()" id="startBtn">Começar atendimento →</button>
+</div>
+</div>
+</div>
+
+<!-- ============ SCREEN: GAME ============ -->
+<div id="gamescreen" class="screen">
+<div class="game-wrap">
+<div class="game-container">
+
+  <!-- Header -->
+  <div class="game-header">
+    <div class="game-title">Folículo — <span id="levelLabel"></span></div>
+    <div class="game-meta">
+      <span class="phase-badge" id="phaseBadge">Observação</span>
+      <span class="turn-badge" id="turnBadge">Turno 1/4</span>
+    </div>
+  </div>
+
+  <!-- Indicators -->
+  <div class="indicators-row" id="indicatorsRow">
+    <div class="indicator-card">
+      <div class="ind-label">Acurácia Observacional</div>
+      <div class="ind-value" id="ind1val">65</div>
+      <div class="ind-bar"><div class="ind-fill" id="ind1bar" style="width:65%"></div></div>
+    </div>
+    <div class="indicator-card">
+      <div class="ind-label">Fundamentação Biológica</div>
+      <div class="ind-value" id="ind2val">65</div>
+      <div class="ind-bar"><div class="ind-fill" id="ind2bar" style="width:65%"></div></div>
+    </div>
+    <div class="indicator-card">
+      <div class="ind-label">Segurança do Cliente</div>
+      <div class="ind-value" id="ind3val">65</div>
+      <div class="ind-bar"><div class="ind-fill" id="ind3bar" style="width:65%"></div></div>
+    </div>
+    <div class="indicator-card">
+      <div class="ind-label">Conduta Profissional</div>
+      <div class="ind-value" id="ind4val">65</div>
+      <div class="ind-bar"><div class="ind-fill" id="ind4bar" style="width:65%"></div></div>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox">
+    <strong>Erro de comunicação</strong>
+    <p id="errorMsg"></p>
+    <button onclick="retryLastAction()">Tentar novamente</button>
+  </div>
+
+  <!-- Main Card -->
+  <div class="main-card">
+    <div class="main-card-header">
+      <h3 id="phaseTitle">🔍 Fase de Observação</h3>
+      <p class="phase-desc" id="phaseDesc">Investigue o caso. Escolha como examinar e descreva o que procura.</p>
+    </div>
+    <div class="main-card-body">
+      <div class="narrative-box" id="narrativeBox">Carregando caso clínico...</div>
+
+      <!-- Investigation toggle (observation phase) -->
+      <div class="toggle-group" id="investigationToggle" style="display:none;">
+        <label>Tipo de investigação</label>
+        <div class="toggle-options">
+          <button class="toggle-opt" data-val="anamnese" onclick="toggleSelect(this,'investigation')">📝 Anamnese</button>
+          <button class="toggle-opt" data-val="visual" onclick="toggleSelect(this,'investigation')">👁️ Exame visual</button>
+          <button class="toggle-opt" data-val="haste" onclick="toggleSelect(this,'investigation')">🔬 Análise da haste</button>
+          <button class="toggle-opt" data-val="palpacao" onclick="toggleSelect(this,'investigation')">🤚 Palpação do couro</button>
+          <button class="toggle-opt" data-val="tração" onclick="toggleSelect(this,'investigation')">💇 Teste de tração</button>
+        </div>
+      </div>
+
+      <!-- Framework toggle (reasoning phase) -->
+      <div class="toggle-group" id="frameworkToggle" style="display:none;">
+        <label>Referência teórica</label>
+        <div class="toggle-options">
+          <button class="toggle-opt" data-val="anatomia" onclick="toggleSelect(this,'framework')">🦴 Anatomia folicular</button>
+          <button class="toggle-opt" data-val="ciclo" onclick="toggleSelect(this,'framework')">🔄 Ciclo capilar</button>
+          <button class="toggle-opt" data-val="molecular" onclick="toggleSelect(this,'framework')">🧬 Sinalização molecular</button>
+          <button class="toggle-opt" data-val="clinica" onclick="toggleSelect(this,'framework')">🏥 Correlação clínica</button>
+        </div>
+      </div>
+
+      <!-- Response -->
+      <div class="response-area">
+        <label id="responseLabel">Sua análise</label>
+        <textarea class="response-textarea" id="responseText" placeholder="Descreva sua análise com pelo menos 50 palavras..." oninput="updateCharCount()"></textarea>
+        <div class="char-counter" id="charCounter">0 palavras</div>
+      </div>
+
+      <!-- Submit -->
+      <div class="submit-row">
+        <div class="consultants-row">
+          <button class="consultant-btn" onclick="openConsultant('renata')">
+            🩺 Dra. Renata <span style="color:var(--text-muted);font-size:0.75rem;">(Dermatologista)</span>
+          </button>
+          <button class="consultant-btn" onclick="openConsultant('marcos')">
+            🔬 Prof. Marcos <span style="color:var(--text-muted);font-size:0.75rem;">(Biólogo)</span>
+          </button>
+        </div>
+        <button class="submit-btn" id="submitBtn" onclick="submitResponse()" disabled>Enviar resposta →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<!-- ============ SCREEN: GAME OVER ============ -->
+<div id="gameover" class="screen">
+<div class="gameover-wrap">
+<div class="gameover-card">
+  <span class="tutorial-icon" id="goIcon">📊</span>
+  <h2 id="goTitle">Simulação Concluída</h2>
+  <p class="verdict" id="goVerdict"></p>
+  <div class="final-indicators" id="finalIndicators"></div>
+  <div class="final-narrative" id="goNarrative"></div>
+  <div class="gameover-actions">
+    <button class="btn-primary" onclick="resetGame()">Nova simulação</button>
+    <button class="btn-secondary" onclick="exportReport()">📄 Exportar relatório</button>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ============ SCREEN: DAILY BLOCK ============ -->
+<div id="dailyblock" class="screen">
+<div class="daily-block-wrap">
+<div class="daily-block-card">
+  <span class="tutorial-icon">⏰</span>
+  <h2>Sessão do dia concluída</h2>
+  <p>Você já completou uma simulação hoje. Volte amanhã para um novo caso clínico — cada dia traz um paciente diferente.</p>
+  <p style="margin-top:12px;font-size:0.85rem;color:var(--text-muted);" id="blockTimer"></p>
+</div>
+</div>
+</div>
+
+<!-- ============ LOADING OVERLAY ============ -->
+<div class="loading-overlay" id="loadingOverlay">
+<div class="loading-box">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">Analisando sua resposta...</div>
+</div>
+</div>
+
+<!-- ============ CONSULTANT OVERLAY ============ -->
+<div class="consultant-overlay" id="consultantOverlay" onclick="closeConsultant(event)">
+<div class="consultant-panel" id="consultantPanel">
+  <h3 id="consultantName"></h3>
+  <p class="role" id="consultantRole"></p>
+  <div class="opinion" id="consultantOpinion">Carregando parecer...</div>
+  <button class="close-panel" onclick="closeConsultantDirect()">Entendi</button>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- JAVASCRIPT -->
+<!-- ============================================================ -->
+<script>
+// ===================== CONSTANTS =====================
+const API_URL = 'https://weathered-snow-8bcbsimulador-proxy.lira-paulovitor.workers.dev';
+const MODEL = 'claude-haiku-4-5-20251001';
+const STORAGE_KEY = 'foliculo_sim_v1';
+
+const LEVEL_CONFIG = {
+  junior: { label: 'Júnior', turns: 4, phases: [2,1,1] },
+  pleno:  { label: 'Pleno',  turns: 6, phases: [2,2,2] },
+  senior: { label: 'Sênior', turns: 9, phases: [3,3,3] }
+};
+
+const PHASE_NAMES = ['Observação','Fundamentação','Conduta'];
+const PHASE_ICONS = ['🔍','🧬','⚕️'];
+const PHASE_DESCS = [
+  'Investigue o caso. Escolha como examinar e descreva o que procura.',
+  'Articule a biologia. Relacione os achados com a anatomia e o ciclo capilar.',
+  'Decida a conduta. Proponha um plano e justifique sua decisão.'
+];
+
+const CONSULTANTS = {
+  renata: { name: 'Dra. Renata Vieira', role: 'Dermatologista — especialista em alopecias e doenças do couro cabeludo', icon: '🩺' },
+  marcos: { name: 'Prof. Marcos Duarte', role: 'Biólogo — pesquisador em biologia do folículo piloso e ciclo capilar', icon: '🔬' }
+};
+
+// ===================== STATE =====================
+let STATE = {
+  screen: 'tutorial1',
+  level: null,
+  playerName: '',
+  turn: 0,
+  phase: 0,
+  turnInPhase: 0,
+  indicators: { acuracia: 65, fundamentacao: 65, seguranca: 65, conduta: 65 },
+  history: [],
+  narrative: '',
+  consultantUsed: [],
+  gameOver: false,
+  hardFail: false,
+  seed: Math.floor(Math.random() * 999999)
+};
+
+// ===================== SYSTEM PROMPT =====================
+function buildSystemPrompt() {
+  const lvl = LEVEL_CONFIG[STATE.level];
+  return `Você é o motor narrativo do simulador "Folículo" — um simulador de raciocínio tricológico para alunos de pós-graduação em Tricologia Avançada e Terapia Capilar da Galícia Educação.
+
+CONTEXTO PEDAGÓGICO:
+O conteúdo cobre dois temas fundamentais:
+1. ANATOMIA FUNCIONAL DA UNIDADE PILOSSEBÁCEA — folículo piloso como mini-órgão integrado: três segmentos (infundíbulo, istmo, segmento inferior), bulbo (matriz germinativa + papila dérmica + melanócitos), bainhas radiculares (interna: cutícula da bainha, Huxley, Henle; externa: contínua, abriga o bulge), bulge (células-tronco CK15/CK19/CD200, renovação folicular, reepitelização), glândula sebácea (secreção holócrina de sebo), músculo eretor do pelo, vascularização (capilares da papila), inervação (sensorial Aδ/C + autonômica simpática), embriogênese (interações epitelial-mesenquimais, placóide→condensado→folículo). Conceitos-chave: papila dérmica como centro instrutivo, transplante capilar funciona porque carrega toda a unidade, queimadura profunda destrói bulge→alopecia cicatricial definitiva, alopecia cicatricial vs não cicatricial depende do destino do bulge, fibroblastos da papila perdem propriedades indutoras em cultura 2D.
+2. CICLO CAPILAR E FISIOLOGIA DO CRESCIMENTO — folículo como mini-órgão cíclico com 4 fases: Anágena (crescimento ativo, 2-7 anos, ~85% dos folículos, Wnt/β-catenina ativa proliferação da matriz, subanágena I-VI), Catágena (regressão por apoptose, ~2 semanas, 1-2%, TGF-β/FGF5/BMP→apoptose do segmento inferior, retração para derme papilar), Telógena (repouso, 2-4 meses, 10-15%, fio em clava retido, telógena refratária vs competente: BMP>Wnt→refratária, Wnt>BMP→competente), Exógena (liberação ativa do fio por proteólise, independente de anágena, 50-100 fios/dia normal). Regulação integrada: Wnt/β-catenina (ativação), BMP (inibição), FGF (permissão), TGF-β (catágena), SHH (proliferação). Padrão mosaico humano (não sincronizado). Correlações clínicas: eflúvio telógeno (estresse→conversão prematura anágena→catágena→telógena, latência 2-4 meses), alopecia androgenética (DHT→miniaturização→encurtamento anágena), alopecia areata (ataque imune ao bulbo, colapso do privilégio imunológico), alopecias cicatriciais (destruição do bulge=irreversível).
+
+PAPEL DO ALUNO:
+O aluno é um profissional de tricologia em formação, atuando numa clínica-escola. Ele NÃO é médico. Ele precisa demonstrar:
+- Capacidade de observação clínica metódica
+- Fundamentação biológica ancorada nos conteúdos estudados (anatomia folicular e ciclo capilar)
+- Julgamento profissional sobre os limites da própria atuação (quando encaminhar ao dermatologista)
+- Comunicação ética e profissional
+
+NÍVEL SELECIONADO: ${lvl.label} (${lvl.turns} turnos)
+Distribuição de fases: Observação (${lvl.phases[0]} turnos) → Fundamentação (${lvl.phases[1]} turnos) → Conduta (${lvl.phases[2]} turnos)
+
+SEED DE RANDOMIZAÇÃO: ${STATE.seed}
+Use este seed para gerar um caso clínico ÚNICO. NÃO repita casos entre sessões. Varie: idade, sexo, tipo de queixa, gravidade, presença ou ausência de sinais de alarme, tipo de alopecia, contexto hormonal/emocional/nutricional.
+
+INDICADORES (começam em 65, escala 0-100):
+1. Acurácia Observacional — investiga com método? Seleciona exames relevantes?
+2. Fundamentação Biológica — ancora hipóteses na anatomia e ciclo capilar?
+3. Segurança do Cliente — reconhece limites profissionais? Encaminha quando necessário?
+4. Conduta Profissional — comunicação clara, ética, contextualizada?
+
+REGRAS CRÍTICAS:
+- Se o aluno der uma resposta VAGA ou CURTA (menos de 50 palavras efetivas de conteúdo), NÃO complete por ele. Penalize nos indicadores e descreva consequências negativas.
+- Se o aluno tomar uma decisão perigosa (ex: tratar alopecia cicatricial sem encaminhar), penalize FORTEMENTE Segurança do Cliente.
+- Se qualquer indicador chegar a 0, retorne game_over: true com narrativa explicando a falha crítica.
+- Os indicadores podem subir OU descer. Respostas excelentes sobem; respostas fracas descem. Delta máximo por turno: ±15.
+- Na fase de Observação, o aluno informa que tipo de investigação faz (anamnese, exame visual, análise da haste, palpação, teste de tração). Use isso para determinar que informações revelar.
+- Na fase de Fundamentação, o aluno indica referência teórica (anatomia folicular, ciclo capilar, sinalização molecular, correlação clínica). Espere que ele ARTICULE a teoria com os achados.
+- Na fase de Conduta, espere uma decisão concreta e justificada.
+
+FORMATO DE RESPOSTA (JSON estrito, sem markdown):
+{
+  "narrativa": "Texto narrativo descrevendo o que acontece no caso clínico, revelando informações conforme o aluno investiga, ou dando feedback sobre a fundamentação/conduta do aluno. Máximo 300 palavras. Em português.",
+  "indicadores": { "acuracia": N, "fundamentacao": N, "seguranca": N, "conduta": N },
+  "modulos_revisar": ["nome do conceito que o aluno precisa revisar"],
+  "game_over": false,
+  "hard_fail": false,
+  "diagnostico_final": ""
+}
+
+Quando for o ÚLTIMO turno, inclua um diagnóstico final resumido no campo diagnostico_final e faça game_over: true.
+Quando hard_fail: true (indicador zerou), explique na narrativa o que deu errado.
+
+NO PRIMEIRO TURNO: apresente o caso clínico. Descreva o paciente que entra na clínica-escola: aparência geral, queixa principal relatada pelo paciente em discurso direto, primeiras observações visuais superficiais. NÃO revele o diagnóstico. O aluno precisa investigar.`;
+}
+
+// ===================== SAFE STORAGE =====================
+// Wraps localStorage in try/catch so the app works inside iframes
+// where third-party storage may be blocked by the browser.
+function storageGet(key) {
+  try { return localStorage.getItem(key); } catch(e) { return null; }
+}
+function storageSet(key, value) {
+  try { localStorage.setItem(key, value); } catch(e) {}
+}
+function storageRemove(key) {
+  try { localStorage.removeItem(key); } catch(e) {}
+}
+
+// ===================== THEME =====================
+function toggleTheme() {
+  const d = document.documentElement;
+  const dark = d.getAttribute('data-theme') === 'dark';
+  d.setAttribute('data-theme', dark ? 'light' : 'dark');
+  document.querySelector('.theme-toggle').textContent = dark ? '🌙' : '☀️';
+  storageSet('foliculo_theme', dark ? 'light' : 'dark');
+}
+(function initTheme() {
+  const t = storageGet('foliculo_theme');
+  if (t === 'dark') {
+    document.documentElement.setAttribute('data-theme','dark');
+    document.querySelector('.theme-toggle').textContent = '☀️';
+  }
+})();
+
+// ===================== NAVIGATION =====================
+function showScreen(id) {
+  try {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(id);
+    if (!target) return;
+    target.classList.add('active');
+    STATE.screen = id;
+  } catch(e) {
+    console.error('showScreen error:', e);
+  }
+}
+
+function selectDifficulty(level) {
+  STATE.level = level;
+  showScreen('namescreen');
+  document.getElementById('playerName').focus();
+}
+
+// ===================== DAILY BLOCK =====================
+function checkDailyBlock() {
+  const data = storageGet(STORAGE_KEY);
+  if (!data) return false;
+  try {
+    const saved = JSON.parse(data);
+    if (saved.completedDate) {
+      const completed = new Date(saved.completedDate);
+      const now = new Date();
+      if (completed.toDateString() === now.toDateString()) {
+        showScreen('dailyblock');
+        updateBlockTimer();
+        return true;
+      }
+    }
+  } catch(e) {}
+  return false;
+}
+
+function updateBlockTimer() {
+  const now = new Date();
+  const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate()+1); tomorrow.setHours(0,0,0,0);
+  const diff = tomorrow - now;
+  const h = Math.floor(diff/3600000); const m = Math.floor((diff%3600000)/60000);
+  const el = document.getElementById('blockTimer');
+  if (el) el.textContent = `Próxima sessão disponível em ${h}h ${m}min.`;
+}
+
+// ===================== SESSION PERSISTENCE =====================
+function saveSession() {
+  storageSet(STORAGE_KEY, JSON.stringify({
+    ...STATE,
+    savedAt: new Date().toISOString()
+  }));
+}
+
+function checkSession() {
+  const data = storageGet(STORAGE_KEY);
+  if (!data) return false;
+  try {
+    const saved = JSON.parse(data);
+    if (saved.completedDate) return false;
+    if (saved.turn > 0 && !saved.gameOver && saved.level) {
+      STATE = { ...STATE, ...saved };
+      showScreen('gamescreen');
+      renderGameState();
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+function markDayComplete() {
+  const data = storageGet(STORAGE_KEY);
+  let saved = data ? JSON.parse(data) : {};
+  saved.completedDate = new Date().toISOString();
+  storageSet(STORAGE_KEY, JSON.stringify(saved));
+}
+
+// ===================== GAME INIT =====================
+function startGame() {
+  const name = document.getElementById('playerName').value.trim();
+  if (!name) { document.getElementById('playerName').focus(); return; }
+  STATE.playerName = name;
+  STATE.turn = 0;
+  STATE.phase = 0;
+  STATE.turnInPhase = 0;
+  STATE.indicators = { acuracia: 65, fundamentacao: 65, seguranca: 65, conduta: 65 };
+  STATE.history = [];
+  STATE.narrative = '';
+  STATE.consultantUsed = [];
+  STATE.gameOver = false;
+  STATE.hardFail = false;
+  STATE.seed = Math.floor(Math.random() * 999999);
+
+  showScreen('gamescreen');
+  renderGameState();
+  requestFirstTurn();
+}
+
+// ===================== RENDER =====================
+function renderGameState() {
+  const cfg = LEVEL_CONFIG[STATE.level];
+  document.getElementById('levelLabel').textContent = cfg.label;
+  document.getElementById('turnBadge').textContent = `Turno ${STATE.turn + 1}/${cfg.turns}`;
+  document.getElementById('phaseBadge').textContent = PHASE_NAMES[STATE.phase];
+
+  document.getElementById('phaseTitle').textContent = `${PHASE_ICONS[STATE.phase]} Fase de ${PHASE_NAMES[STATE.phase]}`;
+  document.getElementById('phaseDesc').textContent = PHASE_DESCS[STATE.phase];
+
+  // Indicators
+  const ids = ['acuracia','fundamentacao','seguranca','conduta'];
+  ids.forEach((id, i) => {
+    const val = Math.max(0, Math.min(100, STATE.indicators[id]));
+    document.getElementById(`ind${i+1}val`).textContent = val;
+    document.getElementById(`ind${i+1}bar`).style.width = val + '%';
+  });
+
+  // Toggles
+  document.getElementById('investigationToggle').style.display = STATE.phase === 0 ? 'block' : 'none';
+  document.getElementById('frameworkToggle').style.display = STATE.phase === 1 ? 'block' : 'none';
+
+  // Response label
+  const labels = ['Descreva sua investigação','Articule sua fundamentação biológica','Descreva sua conduta e justificativa'];
+  document.getElementById('responseLabel').textContent = labels[STATE.phase];
+
+  // Narrative
+  if (STATE.narrative) {
+    document.getElementById('narrativeBox').textContent = STATE.narrative;
+  }
+
+  updateSubmitState();
+}
+
+function updateCharCount() {
+  const text = document.getElementById('responseText').value.trim();
+  const words = text ? text.split(/\s+/).length : 0;
+  const counter = document.getElementById('charCounter');
+  counter.textContent = `${words} palavra${words !== 1 ? 's' : ''}`;
+  counter.classList.toggle('warning', words < 50 && words > 0);
+  updateSubmitState();
+}
+
+function updateSubmitState() {
+  const text = document.getElementById('responseText').value.trim();
+  const words = text ? text.split(/\s+/).length : 0;
+  document.getElementById('submitBtn').disabled = words < 50;
+}
+
+// ===================== TOGGLES =====================
+let selectedToggles = { investigation: [], framework: [] };
+
+function toggleSelect(btn, group) {
+  btn.classList.toggle('selected');
+  const val = btn.getAttribute('data-val');
+  if (btn.classList.contains('selected')) {
+    selectedToggles[group].push(val);
+  } else {
+    selectedToggles[group] = selectedToggles[group].filter(v => v !== val);
+  }
+}
+
+function clearToggles() {
+  document.querySelectorAll('.toggle-opt').forEach(b => b.classList.remove('selected'));
+  selectedToggles = { investigation: [], framework: [] };
+}
+
+// ===================== API CALL =====================
+async function callAPI(messages) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 1500,
+      system: buildSystemPrompt(),
+      messages: messages
+    })
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+  const data = await res.json();
+  const text = data.content.find(c => c.type === 'text')?.text;
+  if (!text) throw new Error('Resposta vazia da API');
+  return parseJSON(text);
+}
+
+function parseJSON(text) {
+  // Strategy 1: direct
+  try { return JSON.parse(text); } catch(e) {}
+  // Strategy 2: extract from markdown
+  const md = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (md) { try { return JSON.parse(md[1].trim()); } catch(e) {} }
+  // Strategy 3: find { ... }
+  const brace = text.match(/\{[\s\S]*\}/);
+  if (brace) { try { return JSON.parse(brace[0]); } catch(e) {} }
+  // Strategy 4: clean
+  if (brace) {
+    let c = brace[0].replace(/,\s*([}\]])/g,'$1').replace(/'/g,'"').replace(/[\x00-\x1F\x7F]/g,' ');
+    try { return JSON.parse(c); } catch(e) {}
+  }
+  // Strategy 5: key extraction
+  try {
+    const obj = {};
+    const re = /"(\w+)"\s*:\s*("(?:[^"\\]|\\.)*"|\[[\s\S]*?\]|\{[\s\S]*?\}|-?\d+\.?\d*|true|false|null)/g;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      try { obj[m[1]] = JSON.parse(m[2]); } catch(e) { obj[m[1]] = m[2].replace(/^"|"$/g,''); }
+    }
+    if (Object.keys(obj).length > 0) return obj;
+  } catch(e) {}
+  console.warn('JSON parse failed:', text.substring(0,200));
+  return null;
+}
+
+function showLoading(text) {
+  document.getElementById('loadingText').textContent = text || 'Analisando sua resposta...';
+  document.getElementById('loadingOverlay').classList.add('active');
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('active');
+}
+function showError(msg) {
+  document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('errorBox').classList.add('active');
+}
+function hideError() {
+  document.getElementById('errorBox').classList.remove('active');
+}
+
+// ===================== GAME FLOW =====================
+let lastAction = null;
+
+async function requestFirstTurn() {
+  showLoading('Preparando caso clínico...');
+  hideError();
+
+  const messages = [
+    { role: 'user', content: `Início da simulação. Nível: ${LEVEL_CONFIG[STATE.level].label}. Seed: ${STATE.seed}. Turno 1/${LEVEL_CONFIG[STATE.level].turns}. Fase: Observação (turno 1 de ${LEVEL_CONFIG[STATE.level].phases[0]} na fase). Nome do aluno: ${STATE.playerName}. Apresente o caso clínico inicial.` }
+  ];
+
+  lastAction = async () => {
+    const result = await callAPI(messages);
+    if (!result) throw new Error('Não foi possível interpretar a resposta.');
+    STATE.history.push({ role: 'user', content: messages[0].content });
+    STATE.history.push({ role: 'assistant', content: JSON.stringify(result) });
+    applyResult(result);
+  };
+
+  try {
+    await lastAction();
+  } catch(e) {
+    console.error(e);
+    showError(e.message || 'Erro ao conectar com o servidor.');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function submitResponse() {
+  const text = document.getElementById('responseText').value.trim();
+  const words = text.split(/\s+/).length;
+  if (words < 50) return;
+
+  hideError();
+  const cfg = LEVEL_CONFIG[STATE.level];
+  const nextTurn = STATE.turn + 1;
+
+  // Determine next phase
+  let nextPhase = STATE.phase;
+  let nextTurnInPhase = STATE.turnInPhase + 1;
+  const phaseLimit = cfg.phases[STATE.phase];
+  if (nextTurnInPhase >= phaseLimit && nextPhase < 2) {
+    nextPhase++;
+    nextTurnInPhase = 0;
+  }
+
+  const isLast = nextTurn >= cfg.turns;
+
+  // Build user message
+  let userMsg = `Turno ${nextTurn}/${cfg.turns}. Fase: ${PHASE_NAMES[STATE.phase]} (turno ${STATE.turnInPhase + 1} de ${phaseLimit} na fase).`;
+  if (STATE.phase === 0 && selectedToggles.investigation.length > 0) {
+    userMsg += ` Tipo de investigação: ${selectedToggles.investigation.join(', ')}.`;
+  }
+  if (STATE.phase === 1 && selectedToggles.framework.length > 0) {
+    userMsg += ` Referência teórica: ${selectedToggles.framework.join(', ')}.`;
+  }
+  if (isLast) userMsg += ' ÚLTIMO TURNO — forneça diagnóstico final e game_over: true.';
+  userMsg += `\n\nResposta do aluno:\n${text}`;
+
+  // Build full message history
+  const messages = [...STATE.history, { role: 'user', content: userMsg }];
+
+  showLoading(STATE.phase === 0 ? 'Examinando o paciente...' : STATE.phase === 1 ? 'Avaliando sua fundamentação...' : 'Analisando sua conduta...');
+
+  lastAction = async () => {
+    const result = await callAPI(messages);
+    if (!result) throw new Error('Não foi possível interpretar a resposta.');
+    STATE.history.push({ role: 'user', content: userMsg });
+    STATE.history.push({ role: 'assistant', content: JSON.stringify(result) });
+    STATE.turn = nextTurn;
+    STATE.phase = nextPhase;
+    STATE.turnInPhase = nextTurnInPhase;
+    applyResult(result);
+    document.getElementById('responseText').value = '';
+    clearToggles();
+    updateCharCount();
+  };
+
+  try {
+    await lastAction();
+  } catch(e) {
+    console.error(e);
+    showError(e.message || 'Erro ao conectar com o servidor.');
+  } finally {
+    hideLoading();
+  }
+}
+
+async function retryLastAction() {
+  if (!lastAction) return;
+  hideError();
+  showLoading('Tentando novamente...');
+  try {
+    await lastAction();
+  } catch(e) {
+    showError(e.message || 'Erro persistente.');
+  } finally {
+    hideLoading();
+  }
+}
+
+function applyResult(result) {
+  if (result.narrativa) STATE.narrative = result.narrativa;
+  if (result.indicadores) {
+    STATE.indicators.acuracia = clamp(result.indicadores.acuracia ?? STATE.indicators.acuracia, 0, 100);
+    STATE.indicators.fundamentacao = clamp(result.indicadores.fundamentacao ?? STATE.indicators.fundamentacao, 0, 100);
+    STATE.indicators.seguranca = clamp(result.indicadores.seguranca ?? STATE.indicators.seguranca, 0, 100);
+    STATE.indicators.conduta = clamp(result.indicadores.conduta ?? STATE.indicators.conduta, 0, 100);
+  }
+
+  // Check hard fail
+  const anyZero = Object.values(STATE.indicators).some(v => v <= 0);
+  if (anyZero) {
+    STATE.hardFail = true;
+    STATE.gameOver = true;
+  }
+  if (result.game_over) STATE.gameOver = true;
+  if (result.hard_fail) STATE.hardFail = true;
+
+  saveSession();
+
+  if (STATE.gameOver) {
+    endGame(result);
+  } else {
+    renderGameState();
+  }
+}
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+// ===================== GAME OVER =====================
+function endGame(result) {
+  markDayComplete();
+
+  const avg = Math.round((STATE.indicators.acuracia + STATE.indicators.fundamentacao + STATE.indicators.seguranca + STATE.indicators.conduta) / 4);
+
+  let icon = '📊', verdict = '';
+  if (STATE.hardFail) {
+    icon = '⚠️'; verdict = 'Falha crítica — indicador zerou.';
+  } else if (avg >= 80) {
+    icon = '🏆'; verdict = 'Desempenho excelente — fundamentação sólida e conduta segura.';
+  } else if (avg >= 60) {
+    icon = '✅'; verdict = 'Desempenho satisfatório — há pontos a aprimorar.';
+  } else {
+    icon = '📚'; verdict = 'Desempenho insuficiente — revise os fundamentos.';
+  }
+
+  document.getElementById('goIcon').textContent = icon;
+  document.getElementById('goTitle').textContent = STATE.hardFail ? 'Simulação Interrompida' : 'Simulação Concluída';
+  document.getElementById('goVerdict').textContent = verdict;
+
+  const names = ['Acurácia Observacional','Fundamentação Biológica','Segurança do Cliente','Conduta Profissional'];
+  const keys = ['acuracia','fundamentacao','seguranca','conduta'];
+  const colors = ['var(--indicator-1)','var(--indicator-2)','var(--indicator-3)','var(--indicator-4)'];
+  let indHTML = '';
+  keys.forEach((k,i) => {
+    indHTML += `<div class="final-ind"><div class="fi-label">${names[i]}</div><div class="fi-value" style="color:${colors[i]}">${STATE.indicators[k]}</div></div>`;
+  });
+  document.getElementById('finalIndicators').innerHTML = indHTML;
+
+  let narr = STATE.narrative || '';
+  if (result && result.diagnostico_final) narr += '\n\n📋 Diagnóstico final: ' + result.diagnostico_final;
+  if (result && result.modulos_revisar && result.modulos_revisar.length > 0) {
+    narr += '\n\n📚 Módulos para revisão: ' + result.modulos_revisar.join(', ');
+  }
+  document.getElementById('goNarrative').textContent = narr;
+
+  showScreen('gameover');
+}
+
+function resetGame() {
+  storageRemove(STORAGE_KEY);
+  STATE = {
+    screen: 'tutorial1', level: null, playerName: '', turn: 0, phase: 0, turnInPhase: 0,
+    indicators: { acuracia: 65, fundamentacao: 65, seguranca: 65, conduta: 65 },
+    history: [], narrative: '', consultantUsed: [], gameOver: false, hardFail: false,
+    seed: Math.floor(Math.random() * 999999)
+  };
+  showScreen('difficulty');
+}
+
+// ===================== CONSULTANT =====================
+async function openConsultant(who) {
+  const c = CONSULTANTS[who];
+  document.getElementById('consultantName').textContent = c.icon + ' ' + c.name;
+  document.getElementById('consultantRole').textContent = c.role;
+  document.getElementById('consultantOpinion').textContent = 'Consultando...';
+  document.getElementById('consultantOverlay').classList.add('active');
+
+  STATE.consultantUsed.push(who);
+
+  const prompt = who === 'renata'
+    ? `O aluno pediu parecer da Dra. Renata (dermatologista). Com base no caso clínico atual e na fase ${PHASE_NAMES[STATE.phase]}, dê um parecer BREVE (máximo 150 palavras) como dermatologista. Seja útil mas não entregue a resposta — oriente o raciocínio. Responda APENAS o texto do parecer, sem JSON.`
+    : `O aluno pediu parecer do Prof. Marcos (biólogo/pesquisador em tricologia). Com base no caso clínico atual e na fase ${PHASE_NAMES[STATE.phase]}, dê um parecer BREVE (máximo 150 palavras) focando na biologia do folículo ou no ciclo capilar. Seja útil mas não entregue a resposta — oriente o raciocínio. Responda APENAS o texto do parecer, sem JSON.`;
+
+  const messages = [...STATE.history, { role: 'user', content: prompt }];
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, max_tokens: 500, system: buildSystemPrompt(), messages })
+    });
+    const data = await res.json();
+    const text = data.content.find(c => c.type === 'text')?.text || 'Parecer não disponível no momento.';
+    document.getElementById('consultantOpinion').textContent = text;
+  } catch(e) {
+    document.getElementById('consultantOpinion').textContent = 'Não foi possível obter o parecer. Tente novamente.';
+  }
+}
+
+function closeConsultant(e) {
+  if (e.target === document.getElementById('consultantOverlay')) {
+    document.getElementById('consultantOverlay').classList.remove('active');
+  }
+}
+function closeConsultantDirect() {
+  document.getElementById('consultantOverlay').classList.remove('active');
+}
+
+// ===================== EXPORT REPORT =====================
+function exportReport() {
+  const cfg = LEVEL_CONFIG[STATE.level];
+  const avg = Math.round((STATE.indicators.acuracia + STATE.indicators.fundamentacao + STATE.indicators.seguranca + STATE.indicators.conduta) / 4);
+
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório Folículo — ${STATE.playerName}</title>
+<style>body{font-family:'Source Sans 3',Helvetica,sans-serif;max-width:700px;margin:40px auto;padding:20px;color:#1E1A14;line-height:1.6}
+h1{font-family:'Playfair Display',Georgia,serif;color:#6B4226}h2{color:#5C5347;border-bottom:1px solid #D9D0C4;padding-bottom:6px;margin-top:24px}
+.ind{display:inline-block;margin:8px 16px 8px 0;padding:8px 16px;background:#F5F0EA;border-radius:8px}
+.ind strong{font-size:1.3rem}.hist{background:#F5F0EA;padding:16px;border-radius:8px;margin:8px 0;border-left:3px solid #6B4226}
+.meta{color:#8F8478;font-size:0.85rem}
+</style></head><body>`;
+  html += `<h1>🔬 Folículo — Relatório de Simulação</h1>`;
+  html += `<p class="meta">Aluno: <strong>${STATE.playerName}</strong> | Nível: ${cfg.label} | Data: ${new Date().toLocaleDateString('pt-BR')} | Média: ${avg}/100</p>`;
+  html += `<h2>Indicadores Finais</h2>`;
+  const names = ['Acurácia Observacional','Fundamentação Biológica','Segurança do Cliente','Conduta Profissional'];
+  const keys = ['acuracia','fundamentacao','seguranca','conduta'];
+  keys.forEach((k,i) => { html += `<div class="ind">${names[i]}: <strong>${STATE.indicators[k]}</strong>/100</div>`; });
+
+  html += `<h2>Histórico de Turnos</h2>`;
+  STATE.history.forEach((msg, idx) => {
+    if (msg.role === 'user' && idx > 0) {
+      html += `<div class="hist"><strong>Aluno:</strong><br>${msg.content.replace(/\n/g,'<br>')}</div>`;
+    } else if (msg.role === 'assistant') {
+      try {
+        const parsed = JSON.parse(msg.content);
+        if (parsed.narrativa) html += `<div class="hist"><strong>Simulador:</strong><br>${parsed.narrativa.replace(/\n/g,'<br>')}</div>`;
+      } catch(e) {
+        html += `<div class="hist"><strong>Simulador:</strong><br>${msg.content.replace(/\n/g,'<br>')}</div>`;
+      }
+    }
+  });
+
+  html += `<h2>Consultores Utilizados</h2>`;
+  html += STATE.consultantUsed.length > 0 ? `<p>${[...new Set(STATE.consultantUsed)].map(w => CONSULTANTS[w].name).join(', ')}</p>` : '<p>Nenhum consultor foi acionado.</p>';
+  html += `<p class="meta" style="margin-top:40px;">Simulador Folículo — Galícia Educação | Gerado automaticamente</p>`;
+  html += `</body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = `Foliculo_Relatorio_${STATE.playerName.replace(/\s+/g,'_')}_${new Date().toISOString().split('T')[0]}.html`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ===================== INIT =====================
+(function init() {
+  try {
+    if (checkDailyBlock()) return;
+    if (checkSession()) return;
+  } catch(e) {
+    console.error('Init error:', e);
+    document.getElementById('tutorial1').classList.add('active');
+  }
+})();
+</script>
+</body>
+</html>
