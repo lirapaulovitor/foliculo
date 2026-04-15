@@ -377,8 +377,11 @@ a { color: var(--accent); text-decoration: none; }
 
 /* Submit Row */
 .submit-row {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-top: 20px; gap: 12px; flex-wrap: wrap;
+  display: flex; flex-direction: column; align-items: stretch;
+  margin-top: 20px; gap: 10px;
+}
+.consultants-row {
+  display: flex; gap: 10px; flex-wrap: wrap;
 }
 .submit-btn {
   padding: 14px 32px; border-radius: var(--radius-full);
@@ -386,6 +389,7 @@ a { color: var(--accent); text-decoration: none; }
   font-weight: 600; font-size: 0.95rem;
   transition: all 0.3s var(--ease-out);
   box-shadow: 0 4px 12px rgba(107,66,38,0.2);
+  text-align: center; width: 100%;
 }
 .submit-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
 .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -512,8 +516,8 @@ a { color: var(--accent); text-decoration: none; }
   .tutorial-card, .difficulty-card, .name-card, .gameover-card { padding: 32px 24px; }
   .tutorial-card h1 { font-size: 1.6rem; }
   .main-card-body { padding: 16px; }
-  .submit-row { flex-direction: column; }
-  .submit-btn, .consultant-btn { width: 100%; justify-content: center; }
+  .consultants-row { flex-direction: column; }
+  .consultant-btn { width: 100%; justify-content: center; }
   .game-header { flex-direction: column; gap: 8px; align-items: flex-start; }
 }
 </style>
@@ -719,12 +723,14 @@ a { color: var(--accent); text-decoration: none; }
 
       <!-- Submit -->
       <div class="submit-row">
-        <button class="consultant-btn" onclick="openConsultant('renata')">
-          🩺 Dra. Renata <span style="color:var(--text-muted);font-size:0.75rem;">(Dermatologista)</span>
-        </button>
-        <button class="consultant-btn" onclick="openConsultant('marcos')">
-          🔬 Prof. Marcos <span style="color:var(--text-muted);font-size:0.75rem;">(Biólogo)</span>
-        </button>
+        <div class="consultants-row">
+          <button class="consultant-btn" onclick="openConsultant('renata')">
+            🩺 Dra. Renata <span style="color:var(--text-muted);font-size:0.75rem;">(Dermatologista)</span>
+          </button>
+          <button class="consultant-btn" onclick="openConsultant('marcos')">
+            🔬 Prof. Marcos <span style="color:var(--text-muted);font-size:0.75rem;">(Biólogo)</span>
+          </button>
+        </div>
         <button class="submit-btn" id="submitBtn" onclick="submitResponse()" disabled>Enviar resposta →</button>
       </div>
     </div>
@@ -787,7 +793,7 @@ a { color: var(--accent); text-decoration: none; }
 <script>
 // ===================== CONSTANTS =====================
 const API_URL = 'https://weathered-snow-8bcbsimulador-proxy.lira-paulovitor.workers.dev';
-const MODEL = 'claude-haiku-4-5-20251001';
+const MODEL = 'claude-sonnet-4-20250514';
 const STORAGE_KEY = 'foliculo_sim_v1';
 
 const LEVEL_CONFIG = {
@@ -829,55 +835,162 @@ let STATE = {
 // ===================== SYSTEM PROMPT =====================
 function buildSystemPrompt() {
   const lvl = LEVEL_CONFIG[STATE.level];
-  return `Você é o motor narrativo do simulador "Folículo" — um simulador de raciocínio tricológico para alunos de pós-graduação em Tricologia Avançada e Terapia Capilar da Galícia Educação.
+  return `Você é o narrador imersivo do simulador "Folículo". Sua função é criar a experiência de um atendimento real em uma clínica-escola de tricologia.
 
-CONTEXTO PEDAGÓGICO:
-O conteúdo cobre dois temas fundamentais:
-1. ANATOMIA FUNCIONAL DA UNIDADE PILOSSEBÁCEA — folículo piloso como mini-órgão integrado: três segmentos (infundíbulo, istmo, segmento inferior), bulbo (matriz germinativa + papila dérmica + melanócitos), bainhas radiculares (interna: cutícula da bainha, Huxley, Henle; externa: contínua, abriga o bulge), bulge (células-tronco CK15/CK19/CD200, renovação folicular, reepitelização), glândula sebácea (secreção holócrina de sebo), músculo eretor do pelo, vascularização (capilares da papila), inervação (sensorial Aδ/C + autonômica simpática), embriogênese (interações epitelial-mesenquimais, placóide→condensado→folículo). Conceitos-chave: papila dérmica como centro instrutivo, transplante capilar funciona porque carrega toda a unidade, queimadura profunda destrói bulge→alopecia cicatricial definitiva, alopecia cicatricial vs não cicatricial depende do destino do bulge, fibroblastos da papila perdem propriedades indutoras em cultura 2D.
-2. CICLO CAPILAR E FISIOLOGIA DO CRESCIMENTO — folículo como mini-órgão cíclico com 4 fases: Anágena (crescimento ativo, 2-7 anos, ~85% dos folículos, Wnt/β-catenina ativa proliferação da matriz, subanágena I-VI), Catágena (regressão por apoptose, ~2 semanas, 1-2%, TGF-β/FGF5/BMP→apoptose do segmento inferior, retração para derme papilar), Telógena (repouso, 2-4 meses, 10-15%, fio em clava retido, telógena refratária vs competente: BMP>Wnt→refratária, Wnt>BMP→competente), Exógena (liberação ativa do fio por proteólise, independente de anágena, 50-100 fios/dia normal). Regulação integrada: Wnt/β-catenina (ativação), BMP (inibição), FGF (permissão), TGF-β (catágena), SHH (proliferação). Padrão mosaico humano (não sincronizado). Correlações clínicas: eflúvio telógeno (estresse→conversão prematura anágena→catágena→telógena, latência 2-4 meses), alopecia androgenética (DHT→miniaturização→encurtamento anágena), alopecia areata (ataque imune ao bulbo, colapso do privilégio imunológico), alopecias cicatriciais (destruição do bulge=irreversível).
+VOZ NARRATIVA — REGRA INVIOLÁVEL:
+Narre SEMPRE em segunda pessoa, no presente, como se o aluno estivesse vivendo a cena naquele instante. Você é a voz do ambiente clínico — descreva o que o profissional vê, ouve, sente ao toque, o que o paciente diz em discurso direto.
+- CERTO: "Você separa as mechas na região temporal e observa que o couro cabeludo está eritematoso. Marina faz uma careta: 'Dói quando você aperta aí.'"
+- CERTO: "Ao realizar o teste de tração, três fios se soltam facilmente. As raízes têm formato de clava esbranquiçada — fios telógenos."
+- CERTO: "Sua escolha de investigar a haste com dermatoscopia revela cutículas danificadas e pontos de fratura ao longo do córtex."
+- ERRADO: "O aluno escolheu fazer anamnese..." / "O estudante escreveu que..." / "A resposta do aluno demonstra..."
+- ERRADO: Qualquer menção a "aluno", "estudante", "resposta", "simulação", "turno", "indicadores" dentro da narrativa.
 
-PAPEL DO ALUNO:
-O aluno é um profissional de tricologia em formação, atuando numa clínica-escola. Ele NÃO é médico. Ele precisa demonstrar:
-- Capacidade de observação clínica metódica
-- Fundamentação biológica ancorada nos conteúdos estudados (anatomia folicular e ciclo capilar)
-- Julgamento profissional sobre os limites da própria atuação (quando encaminhar ao dermatologista)
-- Comunicação ética e profissional
+Nunca quebre a imersão. Nunca comente sobre a qualidade da resposta dentro da narrativa. O feedback pedagógico é dado EXCLUSIVAMENTE pelos indicadores numéricos (que o aluno vê na interface). A narrativa é 100% diegética — só existe o consultório, o paciente, e o que acontece ali.
 
-NÍVEL SELECIONADO: ${lvl.label} (${lvl.turns} turnos)
-Distribuição de fases: Observação (${lvl.phases[0]} turnos) → Fundamentação (${lvl.phases[1]} turnos) → Conduta (${lvl.phases[2]} turnos)
+CONTEÚDO DE REFERÊNCIA:
+Tema 1 — ANATOMIA FUNCIONAL DA UNIDADE PILOSSEBÁCEA: folículo como mini-órgão integrado com três segmentos (infundíbulo, istmo, segmento inferior), bulbo (matriz germinativa + papila dérmica como centro instrutivo + melanócitos), bainhas radiculares (interna: cutícula/Huxley/Henle; externa: contínua, abriga o bulge), bulge (células-tronco CK15/CK19/CD200, renovação folicular, reepitelização), glândula sebácea (holócrina, sebo), músculo eretor, vascularização da papila, inervação sensorial+autonômica, embriogênese por interações epitelial-mesenquimais. Conceitos-chave: papila dérmica como centro instrutivo (se removida→sem pelo; se transplantada→induz folículo novo), transplante capilar funciona porque carrega toda a unidade, queimadura profunda destrói bulge→alopecia cicatricial definitiva, distinção cicatricial (bulge destruído=irreversível) vs não cicatricial (bulge preservado=potencialmente reversível), fibroblastos da papila perdem propriedades indutoras em cultura 2D.
+Tema 2 — CICLO CAPILAR E FISIOLOGIA: 4 fases — Anágena (crescimento ativo, 2-7 anos, ~85% dos folículos, Wnt/β-catenina ativa, subanágena I-VI), Catágena (regressão por apoptose, ~2 semanas, 1-2%, TGF-β/FGF5/BMP), Telógena (repouso, 2-4 meses, 10-15%, fio em clava, refratária BMP>Wnt vs competente Wnt>BMP), Exógena (liberação ativa por proteólise, independente de anágena, 50-100 fios/dia). Regulação: Wnt (ativação), BMP (inibição), SHH (proliferação). Padrão mosaico humano. Correlações clínicas: eflúvio telógeno (estresse→conversão prematura→latência 2-4 meses), alopecia androgenética (DHT→miniaturização→encurtamento anágena), alopecia areata (ataque imune ao bulbo), alopecias cicatriciais (destruição do bulge).
 
-SEED DE RANDOMIZAÇÃO: ${STATE.seed}
-Use este seed para gerar um caso clínico ÚNICO. NÃO repita casos entre sessões. Varie: idade, sexo, tipo de queixa, gravidade, presença ou ausência de sinais de alarme, tipo de alopecia, contexto hormonal/emocional/nutricional.
+CONTEXTO DA SIMULAÇÃO:
+O profissional em formação (NÃO é médico) atua numa clínica-escola de estética capilar avançada. Precisa demonstrar observação metódica, fundamentação biológica, julgamento ético sobre limites profissionais, e comunicação adequada.
 
-INDICADORES (começam em 65, escala 0-100):
+Nível: ${lvl.label} (${lvl.turns} turnos)
+Fases: Observação (${lvl.phases[0]} turnos) → Fundamentação (${lvl.phases[1]} turnos) → Conduta (${lvl.phases[2]} turnos)
+Seed: ${STATE.seed} — use para gerar um caso ÚNICO. Varie: idade, sexo, etnia, tipo de queixa, gravidade, presença/ausência de sinais de alarme, contexto hormonal/emocional/nutricional.
+
+INDICADORES (começam em 65, escala 0-100, delta máx ±15/turno):
 1. Acurácia Observacional — investiga com método? Seleciona exames relevantes?
-2. Fundamentação Biológica — ancora hipóteses na anatomia e ciclo capilar?
-3. Segurança do Cliente — reconhece limites profissionais? Encaminha quando necessário?
+2. Fundamentação Biológica — ancora hipóteses na anatomia e no ciclo capilar?
+3. Segurança do Cliente — reconhece limites? Encaminha quando necessário?
 4. Conduta Profissional — comunicação clara, ética, contextualizada?
 
-REGRAS CRÍTICAS:
-- Se o aluno der uma resposta VAGA ou CURTA (menos de 50 palavras efetivas de conteúdo), NÃO complete por ele. Penalize nos indicadores e descreva consequências negativas.
-- Se o aluno tomar uma decisão perigosa (ex: tratar alopecia cicatricial sem encaminhar), penalize FORTEMENTE Segurança do Cliente.
-- Se qualquer indicador chegar a 0, retorne game_over: true com narrativa explicando a falha crítica.
-- Os indicadores podem subir OU descer. Respostas excelentes sobem; respostas fracas descem. Delta máximo por turno: ±15.
-- Na fase de Observação, o aluno informa que tipo de investigação faz (anamnese, exame visual, análise da haste, palpação, teste de tração). Use isso para determinar que informações revelar.
-- Na fase de Fundamentação, o aluno indica referência teórica (anatomia folicular, ciclo capilar, sinalização molecular, correlação clínica). Espere que ele ARTICULE a teoria com os achados.
-- Na fase de Conduta, espere uma decisão concreta e justificada.
+REGRAS:
+- Resposta vaga/curta do profissional → descreva consequências negativas NA CENA (ex: o paciente fica inseguro, você perde informação importante). Penalize nos indicadores. NUNCA complete pelo profissional.
+- Decisão perigosa (ex: tratar alopecia cicatricial sem encaminhar) → penalize FORTEMENTE Segurança do Cliente.
+- Indicador zerou → game_over + hard_fail. Narre o desfecho clínico negativo.
+- Fase de Observação: o profissional informa o tipo de investigação (anamnese, exame visual, análise da haste, palpação, teste de tração). Revele informações clínicas coerentes com o método escolhido. Se ele não investigar algo relevante, a informação simplesmente não aparece.
+- Fase de Fundamentação: espere articulação entre achados e teoria. Narre a reação do supervisor/preceptor da clínica-escola ao raciocínio.
+- Fase de Conduta: narre as consequências da decisão tomada — o paciente reage, o preceptor avalia.
 
-FORMATO DE RESPOSTA (JSON estrito, sem markdown):
+FORMATO DE RESPOSTA (JSON estrito, sem markdown, sem texto fora do JSON):
 {
-  "narrativa": "Texto narrativo descrevendo o que acontece no caso clínico, revelando informações conforme o aluno investiga, ou dando feedback sobre a fundamentação/conduta do aluno. Máximo 300 palavras. Em português.",
+  "narrativa": "Narração imersiva em segunda pessoa, presente. Máximo 300 palavras. Português brasileiro.",
   "indicadores": { "acuracia": N, "fundamentacao": N, "seguranca": N, "conduta": N },
-  "modulos_revisar": ["nome do conceito que o aluno precisa revisar"],
+  "modulos_revisar": ["conceito a revisar se aplicável"],
   "game_over": false,
   "hard_fail": false,
   "diagnostico_final": ""
 }
 
-Quando for o ÚLTIMO turno, inclua um diagnóstico final resumido no campo diagnostico_final e faça game_over: true.
-Quando hard_fail: true (indicador zerou), explique na narrativa o que deu errado.
+Último turno → game_over: true + diagnostico_final preenchido.
+Primeiro turno → apresente o paciente entrando na sala. Aparência, queixa em discurso direto, primeiras observações visuais. NÃO revele diagnóstico.`;
+}
 
-NO PRIMEIRO TURNO: apresente o caso clínico. Descreva o paciente que entra na clínica-escola: aparência geral, queixa principal relatada pelo paciente em discurso direto, primeiras observações visuais superficiais. NÃO revele o diagnóstico. O aluno precisa investigar.`;
+// ===================== PERSISTENT STORAGE (IndexedDB) =====================
+// IndexedDB works inside cross-origin iframes where localStorage and cookies
+// are blocked. It's async, so we use a memory cache for synchronous reads
+// and flush to IDB on writes.
+const _memCache = {};
+let _db = null;
+
+function _openDB() {
+  return new Promise((resolve, reject) => {
+    if (_db) return resolve(_db);
+    try {
+      const req = indexedDB.open('foliculo_db', 1);
+      req.onupgradeneeded = (e) => { e.target.result.createObjectStore('kv'); };
+      req.onsuccess = (e) => { _db = e.target.result; resolve(_db); };
+      req.onerror = () => resolve(null);
+    } catch(e) { resolve(null); }
+  });
+}
+
+async function _idbGet(key) {
+  const db = await _openDB();
+  if (!db) return null;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction('kv', 'readonly');
+      const req = tx.objectStore('kv').get(key);
+      req.onsuccess = () => resolve(req.result ?? null);
+      req.onerror = () => resolve(null);
+    } catch(e) { resolve(null); }
+  });
+}
+
+async function _idbSet(key, value) {
+  const db = await _openDB();
+  if (!db) return;
+  try {
+    const tx = db.transaction('kv', 'readwrite');
+    tx.objectStore('kv').put(value, key);
+  } catch(e) {}
+}
+
+async function _idbRemove(key) {
+  const db = await _openDB();
+  if (!db) return;
+  try {
+    const tx = db.transaction('kv', 'readwrite');
+    tx.objectStore('kv').delete(key);
+  } catch(e) {}
+}
+
+// Synchronous read from cache (populated at init)
+function storageGet(key) {
+  if (_memCache[key] !== undefined) return _memCache[key];
+  // Fallback: try localStorage
+  try { const v = localStorage.getItem(key); if (v !== null) return v; } catch(e) {}
+  // Fallback: try cookie
+  try {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + encodeURIComponent(key) + '=([^;]*)'));
+    if (m) return decodeURIComponent(m[1]);
+  } catch(e) {}
+  return null;
+}
+
+// Async write to all available backends
+function storageSet(key, value) {
+  _memCache[key] = value;
+  _idbSet(key, value);
+  try { localStorage.setItem(key, value); } catch(e) {}
+  // Cookie only for small values (daily block)
+  if (value.length < 200) {
+    try {
+      const exp = new Date(Date.now() + 365*24*60*60*1000).toUTCString();
+      document.cookie = encodeURIComponent(key) + '=' + encodeURIComponent(value) + '; expires=' + exp + '; path=/; SameSite=None; Secure';
+      document.cookie = encodeURIComponent(key) + '=' + encodeURIComponent(value) + '; expires=' + exp + '; path=/; SameSite=Lax';
+      document.cookie = encodeURIComponent(key) + '=' + encodeURIComponent(value) + '; expires=' + exp + '; path=/';
+    } catch(e) {}
+  }
+}
+
+function storageRemove(key) {
+  delete _memCache[key];
+  _idbRemove(key);
+  try { localStorage.removeItem(key); } catch(e) {}
+  try { document.cookie = encodeURIComponent(key) + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'; } catch(e) {}
+}
+
+// Preload cache from IndexedDB before init
+async function preloadCache() {
+  const keys = [STORAGE_KEY, 'foliculo_theme', 'foliculo_daily'];
+  for (const key of keys) {
+    const val = await _idbGet(key);
+    if (val !== null) _memCache[key] = val;
+  }
+  // Also pull from localStorage/cookie into cache if IDB was empty
+  for (const key of keys) {
+    if (_memCache[key] === undefined) {
+      try { const v = localStorage.getItem(key); if (v !== null) _memCache[key] = v; } catch(e) {}
+    }
+    if (_memCache[key] === undefined) {
+      try {
+        const m = document.cookie.match(new RegExp('(?:^|; )' + encodeURIComponent(key) + '=([^;]*)'));
+        if (m) _memCache[key] = decodeURIComponent(m[1]);
+      } catch(e) {}
+    }
+  }
 }
 
 // ===================== THEME =====================
@@ -886,10 +999,10 @@ function toggleTheme() {
   const dark = d.getAttribute('data-theme') === 'dark';
   d.setAttribute('data-theme', dark ? 'light' : 'dark');
   document.querySelector('.theme-toggle').textContent = dark ? '🌙' : '☀️';
-  localStorage.setItem('foliculo_theme', dark ? 'light' : 'dark');
+  storageSet('foliculo_theme', dark ? 'light' : 'dark');
 }
 (function initTheme() {
-  const t = localStorage.getItem('foliculo_theme');
+  const t = storageGet('foliculo_theme');
   if (t === 'dark') {
     document.documentElement.setAttribute('data-theme','dark');
     document.querySelector('.theme-toggle').textContent = '☀️';
@@ -898,9 +1011,15 @@ function toggleTheme() {
 
 // ===================== NAVIGATION =====================
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  STATE.screen = id;
+  try {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(id);
+    if (!target) return;
+    target.classList.add('active');
+    STATE.screen = id;
+  } catch(e) {
+    console.error('showScreen error:', e);
+  }
 }
 
 function selectDifficulty(level) {
@@ -910,8 +1029,19 @@ function selectDifficulty(level) {
 }
 
 // ===================== DAILY BLOCK =====================
+const DAILY_KEY = 'foliculo_daily';
+
 function checkDailyBlock() {
-  const data = localStorage.getItem(STORAGE_KEY);
+  const today = new Date().toISOString().split('T')[0];
+  // Check lightweight daily key
+  const dailyVal = storageGet(DAILY_KEY);
+  if (dailyVal === today) {
+    showScreen('dailyblock');
+    updateBlockTimer();
+    return true;
+  }
+  // Also check main state
+  const data = storageGet(STORAGE_KEY);
   if (!data) return false;
   try {
     const saved = JSON.parse(data);
@@ -939,14 +1069,14 @@ function updateBlockTimer() {
 
 // ===================== SESSION PERSISTENCE =====================
 function saveSession() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  storageSet(STORAGE_KEY, JSON.stringify({
     ...STATE,
     savedAt: new Date().toISOString()
   }));
 }
 
 function checkSession() {
-  const data = localStorage.getItem(STORAGE_KEY);
+  const data = storageGet(STORAGE_KEY);
   if (!data) return false;
   try {
     const saved = JSON.parse(data);
@@ -962,10 +1092,13 @@ function checkSession() {
 }
 
 function markDayComplete() {
-  const data = localStorage.getItem(STORAGE_KEY);
+  // Set lightweight daily key
+  storageSet(DAILY_KEY, new Date().toISOString().split('T')[0]);
+  // Also update main state
+  const data = storageGet(STORAGE_KEY);
   let saved = data ? JSON.parse(data) : {};
   saved.completedDate = new Date().toISOString();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  storageSet(STORAGE_KEY, JSON.stringify(saved));
 }
 
 // ===================== GAME INIT =====================
@@ -1126,7 +1259,7 @@ async function requestFirstTurn() {
   hideError();
 
   const messages = [
-    { role: 'user', content: `Início da simulação. Nível: ${LEVEL_CONFIG[STATE.level].label}. Seed: ${STATE.seed}. Turno 1/${LEVEL_CONFIG[STATE.level].turns}. Fase: Observação (turno 1 de ${LEVEL_CONFIG[STATE.level].phases[0]} na fase). Nome do aluno: ${STATE.playerName}. Apresente o caso clínico inicial.` }
+    { role: 'user', content: `[SISTEMA: Início. Nível=${LEVEL_CONFIG[STATE.level].label}. Seed=${STATE.seed}. Turno 1/${LEVEL_CONFIG[STATE.level].turns}. Fase=Observação. Nome do profissional: ${STATE.playerName}.] Apresente o paciente entrando na sala.` }
   ];
 
   lastAction = async () => {
@@ -1167,16 +1300,16 @@ async function submitResponse() {
 
   const isLast = nextTurn >= cfg.turns;
 
-  // Build user message
-  let userMsg = `Turno ${nextTurn}/${cfg.turns}. Fase: ${PHASE_NAMES[STATE.phase]} (turno ${STATE.turnInPhase + 1} de ${phaseLimit} na fase).`;
+  // Build user message — metadata in brackets, then the professional's action in natural language
+  let userMsg = `[SISTEMA: Turno ${nextTurn}/${cfg.turns}. Fase=${PHASE_NAMES[STATE.phase]}.`;
   if (STATE.phase === 0 && selectedToggles.investigation.length > 0) {
-    userMsg += ` Tipo de investigação: ${selectedToggles.investigation.join(', ')}.`;
+    userMsg += ` Investigação=${selectedToggles.investigation.join(', ')}.`;
   }
   if (STATE.phase === 1 && selectedToggles.framework.length > 0) {
-    userMsg += ` Referência teórica: ${selectedToggles.framework.join(', ')}.`;
+    userMsg += ` Referência=${selectedToggles.framework.join(', ')}.`;
   }
-  if (isLast) userMsg += ' ÚLTIMO TURNO — forneça diagnóstico final e game_over: true.';
-  userMsg += `\n\nResposta do aluno:\n${text}`;
+  if (isLast) userMsg += ' ÚLTIMO TURNO — inclua diagnóstico_final e game_over:true.';
+  userMsg += `]\n\n${text}`;
 
   // Build full message history
   const messages = [...STATE.history, { role: 'user', content: userMsg }];
@@ -1290,7 +1423,7 @@ function endGame(result) {
 }
 
 function resetGame() {
-  localStorage.removeItem(STORAGE_KEY);
+  storageRemove(STORAGE_KEY);
   STATE = {
     screen: 'tutorial1', level: null, playerName: '', turn: 0, phase: 0, turnInPhase: 0,
     indicators: { acuracia: 65, fundamentacao: 65, seguranca: 65, conduta: 65 },
@@ -1311,8 +1444,8 @@ async function openConsultant(who) {
   STATE.consultantUsed.push(who);
 
   const prompt = who === 'renata'
-    ? `O aluno pediu parecer da Dra. Renata (dermatologista). Com base no caso clínico atual e na fase ${PHASE_NAMES[STATE.phase]}, dê um parecer BREVE (máximo 150 palavras) como dermatologista. Seja útil mas não entregue a resposta — oriente o raciocínio. Responda APENAS o texto do parecer, sem JSON.`
-    : `O aluno pediu parecer do Prof. Marcos (biólogo/pesquisador em tricologia). Com base no caso clínico atual e na fase ${PHASE_NAMES[STATE.phase]}, dê um parecer BREVE (máximo 150 palavras) focando na biologia do folículo ou no ciclo capilar. Seja útil mas não entregue a resposta — oriente o raciocínio. Responda APENAS o texto do parecer, sem JSON.`;
+    ? `[SISTEMA: O profissional solicitou parecer da Dra. Renata. Fase atual: ${PHASE_NAMES[STATE.phase]}.] Responda como a Dra. Renata falaria diretamente ao profissional na clínica-escola. Parecer breve (máximo 150 palavras). Oriente o raciocínio sem entregar a resposta. Fale em segunda pessoa ("Você deveria observar...", "Sugiro que investigue..."). Responda APENAS o texto do parecer, sem JSON.`
+    : `[SISTEMA: O profissional solicitou parecer do Prof. Marcos. Fase atual: ${PHASE_NAMES[STATE.phase]}.] Responda como o Prof. Marcos falaria diretamente ao profissional na clínica-escola. Parecer breve (máximo 150 palavras) focando na biologia do folículo ou ciclo capilar. Oriente o raciocínio sem entregar a resposta. Fale em segunda pessoa ("Lembre-se de que a papila dérmica...", "Pense no ciclo capilar..."). Responda APENAS o texto do parecer, sem JSON.`;
 
   const messages = [...STATE.history, { role: 'user', content: prompt }];
 
@@ -1385,9 +1518,21 @@ h1{font-family:'Playfair Display',Georgia,serif;color:#6B4226}h2{color:#5C5347;b
 }
 
 // ===================== INIT =====================
-(function init() {
-  if (checkDailyBlock()) return;
-  if (checkSession()) return;
+(async function init() {
+  try {
+    await preloadCache();
+    // Apply theme from cache
+    const t = storageGet('foliculo_theme');
+    if (t === 'dark') {
+      document.documentElement.setAttribute('data-theme','dark');
+      document.querySelector('.theme-toggle').textContent = '☀️';
+    }
+    if (checkDailyBlock()) return;
+    if (checkSession()) return;
+  } catch(e) {
+    console.error('Init error:', e);
+    document.getElementById('tutorial1').classList.add('active');
+  }
 })();
 </script>
 </body>
