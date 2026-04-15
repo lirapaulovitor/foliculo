@@ -377,11 +377,8 @@ a { color: var(--accent); text-decoration: none; }
 
 /* Submit Row */
 .submit-row {
-  display: flex; flex-direction: column; align-items: stretch;
-  margin-top: 20px; gap: 10px;
-}
-.consultants-row {
-  display: flex; gap: 10px; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 20px; gap: 12px; flex-wrap: wrap;
 }
 .submit-btn {
   padding: 14px 32px; border-radius: var(--radius-full);
@@ -389,7 +386,6 @@ a { color: var(--accent); text-decoration: none; }
   font-weight: 600; font-size: 0.95rem;
   transition: all 0.3s var(--ease-out);
   box-shadow: 0 4px 12px rgba(107,66,38,0.2);
-  text-align: center; width: 100%;
 }
 .submit-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
 .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -516,8 +512,8 @@ a { color: var(--accent); text-decoration: none; }
   .tutorial-card, .difficulty-card, .name-card, .gameover-card { padding: 32px 24px; }
   .tutorial-card h1 { font-size: 1.6rem; }
   .main-card-body { padding: 16px; }
-  .consultants-row { flex-direction: column; }
-  .consultant-btn { width: 100%; justify-content: center; }
+  .submit-row { flex-direction: column; }
+  .submit-btn, .consultant-btn { width: 100%; justify-content: center; }
   .game-header { flex-direction: column; gap: 8px; align-items: flex-start; }
 }
 </style>
@@ -723,14 +719,12 @@ a { color: var(--accent); text-decoration: none; }
 
       <!-- Submit -->
       <div class="submit-row">
-        <div class="consultants-row">
-          <button class="consultant-btn" onclick="openConsultant('renata')">
-            🩺 Dra. Renata <span style="color:var(--text-muted);font-size:0.75rem;">(Dermatologista)</span>
-          </button>
-          <button class="consultant-btn" onclick="openConsultant('marcos')">
-            🔬 Prof. Marcos <span style="color:var(--text-muted);font-size:0.75rem;">(Biólogo)</span>
-          </button>
-        </div>
+        <button class="consultant-btn" onclick="openConsultant('renata')">
+          🩺 Dra. Renata <span style="color:var(--text-muted);font-size:0.75rem;">(Dermatologista)</span>
+        </button>
+        <button class="consultant-btn" onclick="openConsultant('marcos')">
+          🔬 Prof. Marcos <span style="color:var(--text-muted);font-size:0.75rem;">(Biólogo)</span>
+        </button>
         <button class="submit-btn" id="submitBtn" onclick="submitResponse()" disabled>Enviar resposta →</button>
       </div>
     </div>
@@ -886,29 +880,16 @@ Quando hard_fail: true (indicador zerou), explique na narrativa o que deu errado
 NO PRIMEIRO TURNO: apresente o caso clínico. Descreva o paciente que entra na clínica-escola: aparência geral, queixa principal relatada pelo paciente em discurso direto, primeiras observações visuais superficiais. NÃO revele o diagnóstico. O aluno precisa investigar.`;
 }
 
-// ===================== SAFE STORAGE =====================
-// Wraps localStorage in try/catch so the app works inside iframes
-// where third-party storage may be blocked by the browser.
-function storageGet(key) {
-  try { return localStorage.getItem(key); } catch(e) { return null; }
-}
-function storageSet(key, value) {
-  try { localStorage.setItem(key, value); } catch(e) {}
-}
-function storageRemove(key) {
-  try { localStorage.removeItem(key); } catch(e) {}
-}
-
 // ===================== THEME =====================
 function toggleTheme() {
   const d = document.documentElement;
   const dark = d.getAttribute('data-theme') === 'dark';
   d.setAttribute('data-theme', dark ? 'light' : 'dark');
   document.querySelector('.theme-toggle').textContent = dark ? '🌙' : '☀️';
-  storageSet('foliculo_theme', dark ? 'light' : 'dark');
+  localStorage.setItem('foliculo_theme', dark ? 'light' : 'dark');
 }
 (function initTheme() {
-  const t = storageGet('foliculo_theme');
+  const t = localStorage.getItem('foliculo_theme');
   if (t === 'dark') {
     document.documentElement.setAttribute('data-theme','dark');
     document.querySelector('.theme-toggle').textContent = '☀️';
@@ -917,15 +898,9 @@ function toggleTheme() {
 
 // ===================== NAVIGATION =====================
 function showScreen(id) {
-  try {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    const target = document.getElementById(id);
-    if (!target) return;
-    target.classList.add('active');
-    STATE.screen = id;
-  } catch(e) {
-    console.error('showScreen error:', e);
-  }
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  STATE.screen = id;
 }
 
 function selectDifficulty(level) {
@@ -936,7 +911,7 @@ function selectDifficulty(level) {
 
 // ===================== DAILY BLOCK =====================
 function checkDailyBlock() {
-  const data = storageGet(STORAGE_KEY);
+  const data = localStorage.getItem(STORAGE_KEY);
   if (!data) return false;
   try {
     const saved = JSON.parse(data);
@@ -964,14 +939,14 @@ function updateBlockTimer() {
 
 // ===================== SESSION PERSISTENCE =====================
 function saveSession() {
-  storageSet(STORAGE_KEY, JSON.stringify({
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
     ...STATE,
     savedAt: new Date().toISOString()
   }));
 }
 
 function checkSession() {
-  const data = storageGet(STORAGE_KEY);
+  const data = localStorage.getItem(STORAGE_KEY);
   if (!data) return false;
   try {
     const saved = JSON.parse(data);
@@ -987,10 +962,10 @@ function checkSession() {
 }
 
 function markDayComplete() {
-  const data = storageGet(STORAGE_KEY);
+  const data = localStorage.getItem(STORAGE_KEY);
   let saved = data ? JSON.parse(data) : {};
   saved.completedDate = new Date().toISOString();
-  storageSet(STORAGE_KEY, JSON.stringify(saved));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
 }
 
 // ===================== GAME INIT =====================
@@ -1315,7 +1290,7 @@ function endGame(result) {
 }
 
 function resetGame() {
-  storageRemove(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY);
   STATE = {
     screen: 'tutorial1', level: null, playerName: '', turn: 0, phase: 0, turnInPhase: 0,
     indicators: { acuracia: 65, fundamentacao: 65, seguranca: 65, conduta: 65 },
@@ -1411,13 +1386,8 @@ h1{font-family:'Playfair Display',Georgia,serif;color:#6B4226}h2{color:#5C5347;b
 
 // ===================== INIT =====================
 (function init() {
-  try {
-    if (checkDailyBlock()) return;
-    if (checkSession()) return;
-  } catch(e) {
-    console.error('Init error:', e);
-    document.getElementById('tutorial1').classList.add('active');
-  }
+  if (checkDailyBlock()) return;
+  if (checkSession()) return;
 })();
 </script>
 </body>
